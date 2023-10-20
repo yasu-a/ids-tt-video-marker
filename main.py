@@ -1,9 +1,11 @@
 import functools
+import json
 import os.path
 import sys
 import traceback
 
 import cv2
+import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -121,11 +123,15 @@ class SeekableVideoReader:
     def frame_time(self):
         return self.__last_frame_timestamp
 
-    @functools.lru_cache(maxsize=int(1440 * 1040 * 3 * 1 / (2 * 2) * (30 * 10)))
+    @functools.lru_cache(maxsize=int(128e+6 / (1440 * 1040 * 3 * 1 / (2 * 2))))
     def __read(self, i):
-        print('READ')
         if self.__prop_frame_index() < i:
-            for _ in range(i - self.__prop_frame_index()):
+            delta = i - self.__prop_frame_index()
+            if delta < self.frame_rate * 5:
+                for _ in range(delta):
+                    self.__grab()
+            else:
+                self.__seek_at(i)
                 self.__grab()
         elif self.__prop_frame_index() > i:
             self.__seek_at(i)
@@ -154,6 +160,8 @@ class SeekableVideoReader:
 
 
 class ImageViewWidget(QWidget):
+    changed = pyqtSignal(int, float)
+
     def __init__(self):
         super().__init__()
 
@@ -166,17 +174,21 @@ class ImageViewWidget(QWidget):
         self.__current = 0
         self.__processing = False
 
+    @property
+    def reader(self):
+        return self.__reader
+
     def init_ui(self):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        view = QLabel(self, text='IMAGE')
-        layout.addWidget(view)
-        self.__view = view
-
         label_meta = QLabel(self)
         layout.addWidget(label_meta)
         self.__label_meta = label_meta
+
+        view = QLabel(self, text='IMAGE')
+        layout.addWidget(view)
+        self.__view = view
 
         label_info = QLabel(self, text='info')
         layout.addWidget(label_info)
@@ -205,14 +217,13 @@ class ImageViewWidget(QWidget):
         self.update_frame(0)
 
     def update_info(self):
-        ts = self.__reader.frame_time
-        info = dict(
-            ts_text=f'{int(ts) // 60:3d}:{int(ts) % 60:02d}.{(ts - int(ts)) * 1000:03.0f}',
-            index=self.__reader.frame_index,
-            ts=ts,
+        ts, idx = self.__reader.frame_time, self.__reader.frame_index
+
+        self.__label_info.setText(
+            f'{int(ts) // 60:3d}:{int(ts) % 60:02d}.{(ts - int(ts)) * 1000:03.0f} (#{idx})'
         )
 
-        self.__label_info.setText('. '.join(f'{k}={v}' for k, v in info.items()))
+        self.changed.emit(idx, ts)
 
     def update_frame(self, i):
         if self.__processing:
@@ -220,29 +231,6 @@ class ImageViewWidget(QWidget):
         self.__processing = True
 
         if self.__reader is not None:
-            # i = max(0, min(self.__video_meta['frame_count'], i))
-            #
-            # prev_i = self.__current
-            # self.__current = i
-            #
-            # if prev_i != i:
-            #     if prev_i > self.__current:
-            #         self.__reader.set(cv2.CAP_PROP_POS_FRAMES, i)
-            #         self.__reader.grab()
-            #     else:
-            #         j = prev_i
-            #         while j != i:
-            #             self.__reader.grab()
-            #             j += 1
-            #
-            #     _, img = self.__reader.retrieve()
-            #     img = cv2.resize(img, None, fx=0.5, fy=0.5)
-            #     img = QImage(img.data, img.shape[1], img.shape[0],
-            #                  QImage.Format_RGB888).rgbSwapped()
-            #     self.__view.setPixmap(QPixmap.fromImage(img))
-            #     print(self.__current)
-            #     self.update_info()
-            print(i)
             img = self.__reader[i]
             self.__view.setPixmap(QPixmap.fromImage(img))
             self.update_info()
@@ -264,14 +252,123 @@ class ImageViewWidget(QWidget):
         if self.__reader is None:
             return
 
-        if key == Qt.Key_Left:
+        if key == Qt.Key_Q:
             self.set_frame(delta=-1)
-        elif key == Qt.Key_Right:
+        elif key == Qt.Key_E:
             self.set_frame(delta=+1)
         elif key == Qt.Key_A:
-            self.set_frame(delta=-int(self.__video_meta['frame_rate']))
+            self.set_frame(delta=-int(self.__video_meta['frame_rate'] / 5))
         elif key == Qt.Key_D:
+            self.set_frame(delta=+int(self.__video_meta['frame_rate'] / 5))
+        elif key == Qt.Key_Z:
+            self.set_frame(delta=-int(self.__video_meta['frame_rate']))
+        elif key == Qt.Key_C:
             self.set_frame(delta=+int(self.__video_meta['frame_rate']))
+
+
+class MarkerViewWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.__path = None
+
+        self.__data = {
+            'markers': {}
+        }
+
+        self.__init_ui()
+
+    def __init_ui(self):
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        label_stream = QLabel(self, text='STREAM')
+        layout.addWidget(label_stream)
+        self.__label_stream = label_stream
+
+        label_tl = QLabel(self, text='TL')
+        layout.addWidget(label_tl)
+        self.__label_tl = label_tl
+
+        label_center = QLabel(self, text='C')
+        layout.addWidget(label_center)
+        self.__label_center = label_center
+
+    def get_marker(self, i):
+        return self.__data['markers'].get(str(i))
+
+    def set_marker(self, i, name):
+        if name is None:
+            self.remove_marker(i)
+        else:
+            self.data['markers'][str(i)] = name
+            self.save()
+
+    def remove_marker(self, i):
+        try:
+            del self.data['markers'][str(i)]
+        except KeyError:
+            pass
+        else:
+            self.save()
+
+    def find_marker(self, i, direction):
+        ks = np.array([int(k) for k, v in self.__data['markers'].items()])
+        arg_sort = np.argsort(ks)
+        ks = ks[arg_sort]
+
+        k = None
+        if direction < 0:
+            if ks[ks < i].size != 0:
+                k = ks[ks < i].max()
+        else:
+            if ks[ks > i].size != 0:
+                k = ks[ks > i].min()
+
+        return k
+
+    def update_path(self, path):
+        self.__path = path
+        self.load()
+
+    def update_view(self, current_frame_index):
+        n_side = 70
+        idx = [i for i in range(current_frame_index - n_side, current_frame_index + n_side + 1)]
+        lst = []
+        for i in idx:
+            lst.append(self.get_marker(i))
+        lst_str = ''.join('_' if v is None else v[0] for v in lst)
+        lst_str = f'<html><font size="2">{lst_str}</font></html>'
+        self.__label_stream.setText(lst_str)
+
+        dct = {}
+        for i in idx:
+            if i % 10 == 0:
+                for j, ch in enumerate(f'|_{i}' if i >= 0 else ''):
+                    dct[i + j] = ch
+        a = [dct.get(i, '_') for i in idx]
+        lst_str = ''.join(a)
+        lst_str = f'<html><font size="2">{lst_str}</font></html>'
+        self.__label_tl.setText(lst_str)
+
+        lst_str = ''.join('!' if i == current_frame_index else '_' for i in idx)
+        lst_str = f'<html><font size="2">{lst_str}</font></html>'
+        self.__label_center.setText(lst_str)
+
+    def load(self):
+        if not os.path.exists(self.__path):
+            return
+
+        with open(self.__path, 'r') as f:
+            self.__data = json.load(f)
+
+    def save(self):
+        with open(self.__path, 'w') as f:
+            json.dump(self.__data, f, indent=True, sort_keys=True)
+
+    @property
+    def data(self):
+        return self.__data
 
 
 class MarkerWidget(QWidget):
@@ -284,11 +381,11 @@ class MarkerWidget(QWidget):
         self.setLayout(layout)
 
         # source dir
-        widget_wd = DirectoryChooserWidget('Source Directory',
+        widget_sd = DirectoryChooserWidget('Source Directory',
                                            os.path.expanduser('H:/idsttvideos/singles'))
-        widget_wd.changed.connect(self.update_source_list)
-        layout.addWidget(widget_wd)
-        self.__widget_sd = widget_wd
+        widget_sd.changed.connect(self.update_source_list)
+        layout.addWidget(widget_sd)
+        self.__widget_sd = widget_sd
 
         # working dir
         widget_wd = DirectoryChooserWidget('Working Directory',
@@ -313,14 +410,59 @@ class MarkerWidget(QWidget):
 
         # image viewer
         widget_img_view = ImageViewWidget()
+        widget_img_view.changed.connect(self.widget_img_view_changed)
         layout.addWidget(widget_img_view)
         self.__widget_img_view = widget_img_view
+
+        # marker viewer
+        widget_marker = MarkerViewWidget()
+        layout.addWidget(widget_marker)
+        self.__widget_marker = widget_marker
 
         # misc
         self.update_source_list()
 
+    @pyqtSlot(int, float)
+    def widget_img_view_changed(self, idx, ts):
+        self.__widget_marker.update_view(idx)
+
+    LABELS = ['Stay', 'Play', 'Ready', None]
+    VAL_KEYS = {getattr(Qt, f'Key_{i}'): i for i in range(10)}
+
     def on_key_press(self, key):
         self.__widget_img_view.on_key_press(key)
+
+        if self.__widget_img_view.reader is not None:
+            i = self.__widget_img_view.reader.frame_index
+            if key in self.VAL_KEYS:
+                n = self.VAL_KEYS[key] - 1
+                try:
+                    marker = self.LABELS[n]
+                    if marker == self.__widget_marker.get_marker(i):
+                        marker = None
+                except IndexError:
+                    pass
+                else:
+                    self.__widget_marker.set_marker(i, marker)
+                    self.__widget_marker.update_view(i)
+            elif key == Qt.Key_Delete:
+                self.__widget_marker.remove_marker(i)
+                self.__widget_marker.update_view(i)
+            elif key == Qt.Key_Backspace:
+                self.__widget_marker.remove_marker(i)
+                self.__widget_img_view.on_key_press(Qt.Key_Q)
+            elif key == Qt.Key_Space:
+                self.__widget_img_view.on_key_press(Qt.Key_E)
+            elif key == Qt.Key_Left:
+                j = self.__widget_marker.find_marker(i, -1)
+                if j is None:
+                    j = 0
+                self.__widget_img_view.set_frame(val=j)
+            elif key == Qt.Key_Right:
+                j = self.__widget_marker.find_marker(i, +1)
+                if j is None:
+                    j = self.__widget_img_view.reader.frame_count - 1
+                self.__widget_img_view.set_frame(val=j)
 
     def update_source_list(self):
         source_root = self.__widget_sd.path
@@ -335,6 +477,11 @@ class MarkerWidget(QWidget):
     def list_sl_clicked(self):
         selected_video_path = self.__list_sl.selectedItems()[0].text()
         self.__widget_img_view.init_video(selected_video_path)
+        self.__widget_marker.update_path(
+            os.path.join(self.__widget_wd.path,
+                         os.path.splitext(os.path.split(selected_video_path)[1])[0] + '.json')
+        )
+        self.__widget_marker.update_view(0)
 
 
 class MainWindow(QMainWindow):
@@ -343,7 +490,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(MarkerWidget(self))
         QApplication.instance().installEventFilter(self)
 
-        self.resize(900, 750)
+        self.resize(950, 850)
         self.setWindowTitle('sample')
 
     def eventFilter(self, source, event):
