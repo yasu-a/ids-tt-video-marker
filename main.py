@@ -20,8 +20,6 @@ def excepthook(exc_type, exc_value, exc_tb):
 
 sys.excepthook = excepthook
 
-DEFAULT_WORKING_DIR = os.path.expanduser('~/VideoMarkerWorking')
-
 
 class ApplicationContext:
     def __init__(self):
@@ -52,7 +50,7 @@ class DirectoryChooserWidget(QWidget):
         layout.addWidget(line_edit)
         self.__textline = line_edit
 
-        button_select_sd = QPushButton(self, text='Choose')
+        button_select_sd = QPushButton(self, text='...')
         button_select_sd.clicked.connect(self.button_clicked)
         layout.addWidget(button_select_sd)
 
@@ -164,6 +162,7 @@ class SeekableVideoReader:
 
 class ImageViewWidget(QWidget):
     changed = pyqtSignal(int, float)
+    control = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -185,6 +184,8 @@ class ImageViewWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
+        # view
+
         layout_view = QHBoxLayout()
         layout.addLayout(layout_view)
 
@@ -196,16 +197,48 @@ class ImageViewWidget(QWidget):
 
         layout_view.addStretch(1)
 
+        # info
+
         layout_info = QHBoxLayout()
         layout.addLayout(layout_info)
 
+        def add_control_button(text):
+            b = QPushButton(self, text=text)
+            b.setFixedWidth(50)
+            b.clicked.connect(lambda *args: self.control.emit(text))
+            layout_info.addWidget(b)
+
         layout_info.addStretch(1)
+
+        add_control_button('<|')
+        add_control_button('<<')
+        add_control_button('|<')
 
         label_info = QLabel(self, text='info')
         layout_info.addWidget(label_info)
         self.__label_info = label_info
 
+        add_control_button('>|')
+        add_control_button('>>')
+        add_control_button('|>')
+
         layout_info.addStretch(1)
+
+        layout_control = QHBoxLayout()
+        layout.addLayout(layout_control)
+
+        def add_control_button(text):
+            b = QPushButton(self, text=text)
+            b.setFixedWidth(50)
+            b.clicked.connect(lambda *args: self.control.emit(text))
+            layout_control.addWidget(b)
+
+        layout_control.addStretch(1)
+        add_control_button('<<<')
+        add_control_button('<M')
+        add_control_button('M>')
+        add_control_button('>>>')
+        layout_control.addStretch(1)
 
     def init_video(self, path):
         self.__video_path = path
@@ -338,16 +371,22 @@ class MarkerViewWidget(QWidget):
         return k
 
     def update_path(self, path):
+        dir_path = os.path.abspath(os.path.dirname(path))
+        os.makedirs(dir_path, exist_ok=True)
         self.__path = path
         self.load()
 
     def update_view(self, current_frame_index):
-        n_side = 80
+        n_side = 100
         idx = [i for i in range(current_frame_index - n_side, current_frame_index + n_side + 1)]
-        lst = []
+
+        dct = {}
         for i in idx:
-            lst.append(self.get_marker(i))
-        lst_str = ''.join('_' if v is None else v[0] for v in lst)
+            marker = self.get_marker(i)
+            if marker is not None:
+                for j, ch in enumerate(f'!{marker}'):
+                    dct[i + j] = ch
+        lst_str = ''.join([dct.get(i, '_') for i in idx])
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
         self.__label_stream.setText(lst_str)
 
@@ -356,8 +395,7 @@ class MarkerViewWidget(QWidget):
             if i % 10 == 0:
                 for j, ch in enumerate(f'|_{i}' if i >= 0 else ''):
                     dct[i + j] = ch
-        a = [dct.get(i, '_') for i in idx]
-        lst_str = ''.join(a)
+        lst_str = ''.join([dct.get(i, '_') for i in idx])
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
         self.__label_tl.setText(lst_str)
 
@@ -392,7 +430,7 @@ class MarkerWidget(QWidget):
 
         # source dir
         widget_sd = DirectoryChooserWidget('Source Directory',
-                                           os.path.expanduser('~/Desktop/idsttvideos/singles'))
+                                           os.path.expanduser('H:/idsttvideos/singles'))
         widget_sd.changed.connect(self.update_source_list)
         layout.addWidget(widget_sd)
         self.__widget_sd = widget_sd
@@ -420,6 +458,7 @@ class MarkerWidget(QWidget):
         # image viewer
         widget_img_view = ImageViewWidget()
         widget_img_view.changed.connect(self.widget_img_view_changed)
+        widget_img_view.control.connect(self.widget_control_clicked)
         layout.addWidget(widget_img_view)
         self.__widget_img_view = widget_img_view
 
@@ -434,6 +473,22 @@ class MarkerWidget(QWidget):
     @pyqtSlot(int, float)
     def widget_img_view_changed(self, idx, ts):
         self.__widget_marker.update_view(idx)
+
+    @pyqtSlot(str)
+    def widget_control_clicked(self, val):
+        key = {
+            '<<<': Qt.Key_Comma,
+            '<M': Qt.Key_Left,
+            '<|': Qt.Key_Z,
+            '<<': Qt.Key_A,
+            '|<': Qt.Key_Q,
+            '>|': Qt.Key_E,
+            '>>': Qt.Key_D,
+            '|>': Qt.Key_C,
+            'M>': Qt.Key_Right,
+            '>>>': Qt.Key_Period,
+        }.get(val)
+        self.on_key_press(key)
 
     LABELS = ['Stay', 'Play', 'Ready', None]
     VAL_KEYS = {getattr(Qt, f'Key_{i}'): i for i in range(10)}
@@ -509,7 +564,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().installEventFilter(self)
 
         self.resize(950, 850)
-        self.setWindowTitle('sample')
+        self.setWindowTitle('vosaic?')
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.KeyPress:
