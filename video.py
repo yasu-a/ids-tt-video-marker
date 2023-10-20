@@ -79,14 +79,15 @@ def extract_frames(video_path, retrieve_interval=None, bar=True, size_limit_mega
         return images, timestamps
 
 
-CACHE_DIR = './cache'
-VIDEO_DIR = os.path.expanduser('~/Desktop/idsttvideos/singles')
-VIDEO_SHAPE = *(np.array([1040, 1440]) // 4), 3
+CACHE_DIR = 'G:\ids-tt-video-maker-working'
+VIDEO_DIR = os.path.expanduser('H:/idsttvideos/singles')
+VIDEO_SHAPE = *(np.array([1440, 1040]) // 4), 3
 
 
 class Video:
     def __init__(self, video_name):
         self.__cache_path = os.path.join(CACHE_DIR, '{}_' + video_name + '.mmap')
+        os.makedirs(CACHE_DIR, exist_ok=True)
         self.__video_path = os.path.join(VIDEO_DIR, video_name + '.mp4')
         self.__n_frames = None
         self.__fps = None
@@ -118,10 +119,10 @@ class Video:
             shape=self.__n_frames
         )
 
-        it = extract_frames(self.__video_path, return_iterator=True, retrieve_interval=0.1,
+        it = extract_frames(self.__video_path, return_iterator=True, retrieve_interval=0.05,
                             size_limit_megabytes=150000)
         for i, (fr, ts) in enumerate(it):
-            fr = cv2.resize(fr, dsize=(VIDEO_SHAPE[[1]], VIDEO_SHAPE[0]))
+            fr = cv2.resize(fr, dsize=VIDEO_SHAPE[:-1])
             self.__frames[i] = fr
             self.__timestamps[i] = ts
 
@@ -131,7 +132,7 @@ class Video:
         self.__n_frames = meta['frame_count']
         self.__fps = meta['frame_rate']
 
-        if not os.path.exists(self.__cache_path):
+        if True and not os.path.exists(self.__cache_path):
             self.create_cache()
         else:
             self.__frames = np.memmap(
