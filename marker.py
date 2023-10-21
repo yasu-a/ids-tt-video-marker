@@ -1,0 +1,296 @@
+import re
+from copy import deepcopy
+import functools
+import json
+import os.path
+import sys
+import traceback
+
+import cv2
+import numpy as np
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+
+
+class LabelDataFormatError(RuntimeError):
+    pass
+
+
+class LabelData:
+    ROOT_DIR = './labels'
+
+    def __init__(self, data):
+        self.__data = data
+
+    @classmethod
+    def from_name(cls, name):
+        path = os.path.join(cls.ROOT_DIR, name + '.json')
+        with open(path, 'r') as f:
+            data = json.load(f)
+
+        return cls(data)
+
+        # TODO: format check
+        # dct = {}
+        # for k, v in data.items():
+        #     if not re.fullmatch(r'[0-9]', k):
+        #         raise LabelDataFormatError('keys of the root node must be a digit')
+        #     if not isinstance(v):
+
+    def iter_labels(self):
+        for index, data in self.__data.items():
+            name, tags = data['name'], data['tags']
+            yield index, name, tags
+
+    def index_to_label(self, i):
+        return (self.__data.get(str(i)) or {}).get('name')
+
+    def label_to_data(self, label_name):
+        for k, v in self.__data.items():
+            if v['name'] == label_name:
+                return v
+        return None
+
+    def index_to_tag(self, label_name, i):
+        data = self.label_to_data(label_name)
+        if data is None:
+            return None
+        try:
+            tag = data['tags'][i]
+        except IndexError:
+            return None
+        return tag
+
+    @classmethod
+    def list_names(cls):
+        return [
+            os.path.splitext(name)[0]
+            for name in os.listdir(cls.ROOT_DIR)
+            if name.endswith('.json')
+        ]
+
+
+class LabelWidget(QWidget):
+    def __init__(self, parent: QObject, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        self.__labels = None
+
+        self.__init_ui()
+
+    @property
+    def labels(self):
+        return self.__labels
+
+    def __init_ui(self):
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        combo_files = QComboBox(self)
+        combo_files.currentIndexChanged.connect(self.__update_file_selection)
+        layout.addWidget(combo_files)
+        self.__combo_files = combo_files
+
+        w_labels = QWidget(self)
+        layout.addWidget(w_labels)
+        self.__w_labels = w_labels
+
+    @pyqtSlot(int)
+    def load_files(self):
+        self.__combo_files.clear()
+        for name in LabelData.list_names():
+            self.__combo_files.addItem(name)
+
+    def __update_w_labels(self):
+        w = self.__w_labels
+        self.__w_labels = QWidget(self)
+        self.layout().addWidget(self.__w_labels)
+        w.deleteLater()
+
+        layout = QVBoxLayout()
+        self.__w_labels.setLayout(layout)
+
+        layout.addWidget(QLabel(self, text='aaaaaa'))
+
+        for index, name, tags in self.__labels.iter_labels():
+            print(index, name, tags)
+            b_name = QPushButton(self, text=f'{name} [{index}]')
+            layout.addWidget(b_name)
+
+            layout_tag = QGridLayout()
+            layout.addLayout(layout_tag)
+
+            n = 3
+            for i, tag in enumerate(tags):
+                y, x = i // n, i % n
+                b_tag = QPushButton(self, text=tag)
+                layout_tag.addWidget(b_tag, y, x)
+
+    @pyqtSlot(int)
+    def __update_file_selection(self, i):
+        name = self.__combo_files.itemText(i)
+        self.__labels = LabelData.from_name(name)
+        self.__update_w_labels()
+
+
+class MarkerWidget(QWidget):
+    @classmethod
+    def __default_mark_data(cls):
+        return {
+            'markers': {},
+            'tags': {}
+        }
+
+    def __init__(self, parent: QObject, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        self.__output_dir_path = './markdata'
+        self.__path = None
+
+        self.__data = None
+
+        self.__init_ui()
+
+    def __init_ui(self):
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        label_stream = QLabel(self, text='STREAM')
+        layout.addWidget(label_stream)
+        self.__label_stream = label_stream
+
+        label_tl = QLabel(self, text='TL')
+        layout.addWidget(label_tl)
+        self.__label_tl = label_tl
+
+        label_center = QLabel(self, text='C')
+        layout.addWidget(label_center)
+        self.__label_center = label_center
+
+    def get_marker(self, i):
+        return self.__data['markers'].get(str(i))
+
+    def get_tags(self, i):
+        return tuple(self.__data['tags'].get(str(i)) or [])
+
+    def set_marker(self, i, name):
+        if name is None:
+            self.remove_marker(i)
+        else:
+            self.__data['markers'][str(i)] = name
+            self.__save()
+
+    def add_tag(self, i, tag_name):
+        if self.get_marker(i) is None:
+            return
+        if str(i) not in self.__data['tags']:
+            self.__data['tags'][str(i)] = []
+        if tag_name in self.__data['tags'][str(i)]:
+            return
+        self.__data['tags'][str(i)].append(tag_name)
+        self.__save()
+
+    def remove_marker(self, i):
+        try:
+            del self.__data['markers'][str(i)]
+            try:
+                del self.__data['tags'][str(i)]
+            except KeyError:
+                pass
+        except KeyError:
+            pass
+        else:
+            self.__save()
+
+    def remove_tag(self, i, tag_name):
+        if self.get_marker(i) is None:
+            return
+        if str(i) not in self.__data['tags']:
+            return
+        if tag_name not in self.__data['tags'][str(i)]:
+            return
+        self.__data['tags'][str(i)].remove(tag_name)
+        if not self.__data['tags'][str(i)]:
+            del self.__data['tags'][str(i)]
+        self.__save()
+
+    def find_marker(self, i, direction, n=None):
+        ks = np.array([int(k) for k, v in self.__data['markers'].items()])
+        arg_sort = np.argsort(ks)
+        ks = ks[arg_sort]
+
+        if n is None:
+            k = None
+        else:
+            k = []
+        if direction < 0:
+            if ks[ks < i].size != 0:
+                if n is None:
+                    k = ks[ks < i].max()
+                else:
+                    k = ks[ks < i][ks[ks < i].argsort()[-n:]]
+        else:
+            if ks[ks > i].size != 0:
+                if n is None:
+                    k = ks[ks > i].min()
+                else:
+                    k = ks[ks > i][ks[ks > i].argsort()[:n]]
+        return k
+
+    def update_view(self, current_frame_index):
+        n_side = 60
+        idx = [i for i in range(current_frame_index - n_side, current_frame_index + n_side + 1)]
+
+        dct = {}
+        for i in idx:
+            marker = self.get_marker(i)
+            if marker is not None:
+                tags = self.get_tags(i)
+                tags = '[' + ','.join(tags) + ']' if tags else ''
+                for j, ch in enumerate(f'!{marker}{tags}'):
+                    dct[i + j] = ch
+        lst_str = ''.join([dct.get(i, '_') for i in idx])
+        lst_str = f'<html><font size="2">{lst_str}</font></html>'
+        self.__label_stream.setText(lst_str)
+
+        dct = {}
+        for i in idx:
+            if i % 10 == 0:
+                for j, ch in enumerate(f'|_{i}' if i >= 0 else ''):
+                    dct[i + j] = ch
+        lst_str = ''.join([dct.get(i, '_') for i in idx])
+        lst_str = f'<html><font size="2">{lst_str}</font></html>'
+        self.__label_tl.setText(lst_str)
+
+        lst_str = ''.join('!' if i == current_frame_index else '_' for i in idx)
+        lst_str = f'<html><font size="2">{lst_str}</font></html>'
+        self.__label_center.setText(lst_str)
+
+    def __load(self, path):
+        dir_path = os.path.abspath(os.path.dirname(path))
+        os.makedirs(dir_path, exist_ok=True)
+
+        self.__path = path
+
+        if not os.path.exists(self.__path):
+            self.__data = self.__default_mark_data()
+        else:
+            with open(self.__path, 'r') as f:
+                self.__data = json.load(f)
+
+    def __save(self):
+        with open(self.__path, 'w') as f:
+            json.dump(self.__data, f, indent=True, sort_keys=True)
+
+    @pyqtSlot(str, float, int)
+    def setup_meta(self, path, fps, n_fr):
+        json_path = os.path.join(
+            self.__output_dir_path,
+            os.path.splitext(os.path.split(path)[1])[0] + '.json'
+        )
+        self.__load(json_path)
+
+    @pyqtSlot(QImage, int, float)
+    def setup_frame(self, img, idx, ts):
+        self.update_view(idx)

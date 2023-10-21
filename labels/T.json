@@ -1,0 +1,23 @@
+{
+  "1": {
+    "name": "Stay",
+    "tags": [
+      "Home",
+      "Away"
+    ]
+  },
+  "2": {
+    "name": "Play",
+    "tags": [
+      "Home",
+      "Away"
+    ]
+  },
+  "3": {
+    "name": "Ready",
+    "tags": [
+      "Home",
+      "Away"
+    ]
+  }
+}
