@@ -292,7 +292,9 @@ class MainWidget(HorizontalSplitter):
         v.seek(0)
 
 
-DEBUG = True
+DEBUG = False if 'disable_debug' in sys.argv else True
+
+print(f'{DEBUG=}')
 
 
 class MainWindow(QMainWindow):
