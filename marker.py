@@ -171,6 +171,16 @@ class MarkerWidget(QWidget):
     def get_marker(self, i):
         return self.__data['markers'].get(str(i))
 
+    def get_marker_subtotal(self, i):
+        ks = np.array([int(k) for k, v in self.__data['markers'].items()])
+        vs = np.array([v for k, v in self.__data['markers'].items()])
+
+        sort_arg = np.argsort(ks)
+        ks = ks[sort_arg]
+        vs = vs[sort_arg]
+
+        return np.count_nonzero(vs[ks <= i] == self.get_marker(i))
+
     def get_tags(self, i):
         return tuple(self.__data['tags'].get(str(i)) or [])
 
@@ -248,7 +258,8 @@ class MarkerWidget(QWidget):
             if marker is not None:
                 tags = self.get_tags(i)
                 tags = '[' + ','.join(tags) + ']' if tags else ''
-                for j, ch in enumerate(f'!{marker}{tags}'):
+                subtotal = self.get_marker_subtotal(i)
+                for j, ch in enumerate(f'!{marker}{tags}({subtotal})'):
                     dct[i + j] = ch
         lst_str = ''.join([dct.get(i, '_') for i in idx])
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
