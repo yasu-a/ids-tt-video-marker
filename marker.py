@@ -72,6 +72,8 @@ class LabelData:
 
 
 class LabelWidget(QWidget):
+    control_clicked = pyqtSignal(int, str)  # n, marker_type
+
     def __init__(self, parent: QObject, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
 
@@ -115,17 +117,43 @@ class LabelWidget(QWidget):
 
         for index, name, tags in self.__labels.iter_labels():
             print(index, name, tags)
-            b_name = QPushButton(self, text=f'{name} [{index}]')
+            b_name = QPushButton(
+                self,
+                text=f'{name} [{index}]',
+                clicked=self.on_control_clicked,
+                objectName=f'{index},-1'
+            )
+            b_name.setFixedWidth(70 * 3 + 1)
             layout.addWidget(b_name)
 
-            layout_tag = QGridLayout()
-            layout.addLayout(layout_tag)
+            layout_tag = None
 
             n = 3
             for i, tag in enumerate(tags):
                 y, x = i // n, i % n
-                b_tag = QPushButton(self, text=tag)
-                layout_tag.addWidget(b_tag, y, x)
+                if x == 0:
+                    if layout_tag is not None:
+                        layout_tag.addStretch(1)
+                    layout_tag = QHBoxLayout()
+                    layout.addLayout(layout_tag)
+                b_tag = QPushButton(
+                    self,
+                    text=tag,
+                    clicked=self.on_control_clicked,
+                    objectName=f'{index},{i}'
+                )
+                b_tag.setFixedWidth(70)
+                layout_tag.addWidget(b_tag)
+            if layout_tag is not None:
+                layout_tag.addStretch(1)
+
+    @pyqtSlot()
+    def on_control_clicked(self):
+        a, b = map(int, self.sender().objectName().split(','))
+        if b < 0:
+            self.control_clicked.emit(a, 'label')
+        else:
+            self.control_clicked.emit(b, 'tag')
 
     @pyqtSlot(int)
     def __update_file_selection(self, i):

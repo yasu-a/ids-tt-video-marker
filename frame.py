@@ -10,11 +10,13 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+from common import FrameAction
+
 from video import Video
 
 
 class FrameViewWidget(QWidget):
-    control_clicked = pyqtSignal(str)
+    control_clicked = pyqtSignal(FrameAction)
 
     def __init__(self, parent: QObject, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
@@ -27,6 +29,23 @@ class FrameViewWidget(QWidget):
         self.__view = None
 
         self.init_ui()
+
+    CONTROL_ACTIONS = (
+        (
+            ('<|', FrameAction.PREV_PAGE_SECONDS),
+            ('<<', FrameAction.PREV_PAGE_STRIDES),
+            ('|<', FrameAction.PREV_PAGE)
+        ), (
+            ('>|', FrameAction.NEXT_PAGE),
+            ('>>', FrameAction.NEXT_PAGE_STRIDES),
+            ('|>', FrameAction.NEXT_PAGE_SECONDS)
+        ), (
+            ('<S', FrameAction.FIRST_PAGE),
+            ('<M', FrameAction.PREV_MARKER),
+            ('M>', FrameAction.NEXT_MARKER),
+            ('S>', FrameAction.LAST_PAGE)
+        )
+    )
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -50,42 +69,34 @@ class FrameViewWidget(QWidget):
         layout_info = QHBoxLayout()
         layout.addLayout(layout_info)
 
-        def add_control_button(text):
-            b = QPushButton(self, text=text)
-            b.setFixedWidth(50)
-            b.clicked.connect(lambda *args: self.control_clicked.emit(text))
-            layout_info.addWidget(b)
-
         layout_info.addStretch(1)
 
-        add_control_button('<|')
-        add_control_button('<<')
-        add_control_button('|<')
+        def add_control_button(text, act, la):
+            b = QPushButton(self, text=text)
+            b.setFixedWidth(50)
+            b.clicked.connect(lambda *args: self.control_clicked.emit(act))
+            la.addWidget(b)
+
+        for text, act in self.CONTROL_ACTIONS[0]:
+            add_control_button(text, act, layout_info)
 
         label_info = QLabel(self, text='info')
         layout_info.addWidget(label_info)
         self.__label_info = label_info
 
-        add_control_button('>|')
-        add_control_button('>>')
-        add_control_button('|>')
+        for text, act in self.CONTROL_ACTIONS[1]:
+            add_control_button(text, act, layout_info)
 
         layout_info.addStretch(1)
 
         layout_control = QHBoxLayout()
         layout.addLayout(layout_control)
 
-        def add_control_button(text):
-            b = QPushButton(self, text=text)
-            b.setFixedWidth(50)
-            b.clicked.connect(lambda *args: self.control_clicked.emit(text))
-            layout_control.addWidget(b)
-
         layout_control.addStretch(1)
-        add_control_button('<S')
-        add_control_button('<M')
-        add_control_button('M>')
-        add_control_button('S>')
+
+        for text, act in self.CONTROL_ACTIONS[2]:
+            add_control_button(text, act, layout_control)
+
         layout_control.addStretch(1)
 
     @pyqtSlot()

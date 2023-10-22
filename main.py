@@ -1,19 +1,14 @@
-from enum import Enum, auto
-import functools
-import json
-import os.path
-import sys
-import traceback
+from enum import Enum
 
-import cv2
-import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from marker import MarkerWidget, LabelData, LabelWidget
+from marker import MarkerWidget, LabelWidget
 from frame import FrameViewWidget
 from video import Video
+
+from common import DEBUG, FrameAction
 
 
 class HorizontalSplitter(QSplitter):
@@ -47,59 +42,6 @@ class HorizontalSplitter(QSplitter):
         return self.__right
 
 
-class FrameAction(Enum):
-    FIRST_PAGE = ('#first', 'seek')
-    LAST_PAGE = ('#last', 'seek')
-    NEXT_PAGE = (+1, 'relative', 'seek')
-    PREV_PAGE = (-1, 'relative', 'seek')
-    NEXT_PAGE_STRIDES = ('#fps', +0.2, 'relative', 'seek')
-    PREV_PAGE_STRIDES = ('#fps', -0.2, 'relative', 'seek')
-    NEXT_PAGE_SECONDS = ('#fps', +10, 'relative', 'seek')
-    PREV_PAGE_SECONDS = ('#fps', -10, 'relative', 'seek')
-    NEXT_MARKER = (0, 'relative', 'marked_after', '$LAST_PAGE', 'seek')
-    PREV_MARKER = (0, 'relative', 'marked_before', '$FIRST_PAGE', 'seek')
-
-    def parse_request_absolute(self, i_current, n_frames, fps, mark_getter):
-        constants = {
-            'fps': fps,
-            'first': 0,
-            'last': n_frames - 1
-        }
-        acc = None
-        for inst in self.value:
-            if isinstance(inst, (int, float)):
-                num = inst
-            elif inst.startswith('#'):
-                num = constants.get(inst[1:])
-                num = int(round(num, 0))
-            else:
-                num = None
-
-            if isinstance(inst, str) \
-                    and inst.startswith('$') \
-                    and inst[1:] in type(self).__members__:
-                inst = type(self).__members__[inst[1:]]
-                if acc is None:
-                    return inst.parse_request_absolute(i_current, n_frames, fps, mark_getter)
-            elif acc is None:
-                acc = num
-            elif num is not None:
-                acc = int(acc * num)
-            elif inst == 'relative':
-                acc = i_current + acc
-            elif inst == 'marked_after':
-                acc = mark_getter(acc, +1)
-            elif inst == 'marked_before':
-                acc = mark_getter(acc, -1)
-            elif inst == 'seek':
-                assert acc is not None, (self, self.value, inst, acc)
-                return acc
-            else:
-                assert False, (self, self.value, inst, acc)
-
-        assert False, (self, self.value, '<EOL>', acc)
-
-
 class MainWidget(HorizontalSplitter):
 
     def __init__(self, parent: QObject, *args, **kwargs):
@@ -126,7 +68,6 @@ class MainWidget(HorizontalSplitter):
 
         # frame viewer
         self.__w_frame = FrameViewWidget(self)
-        self.__w_frame.control_clicked.connect(self.widget_control_clicked)
         self.left.addWidget(self.__w_frame)
 
         # marker viewer
@@ -136,23 +77,8 @@ class MainWidget(HorizontalSplitter):
         self.left.addStretch(1)
 
     def __init_signals(self):
-        pass
-
-    @pyqtSlot(str)
-    def widget_control_clicked(self, val):
-        act = {
-            '<S': FrameAction.FIRST_PAGE,
-            '<M': FrameAction.PREV_MARKER,
-            '<|': FrameAction.PREV_PAGE_SECONDS,
-            '<<': FrameAction.PREV_PAGE_STRIDES,
-            '|<': FrameAction.PREV_PAGE,
-            'S>': FrameAction.LAST_PAGE,
-            'M>': FrameAction.NEXT_MARKER,
-            '|>': FrameAction.NEXT_PAGE_SECONDS,
-            '>>': FrameAction.NEXT_PAGE_STRIDES,
-            '>|': FrameAction.NEXT_PAGE
-        }.get(val)
-        self.perform_frame_action(act)
+        self.__w_frame.control_clicked.connect(self.perform_frame_action)
+        self.__w_label.control_clicked.connect(self.perform_marker_action)
 
     @pyqtSlot(FrameAction)
     def perform_frame_action(self, act: FrameAction):
@@ -169,7 +95,7 @@ class MainWidget(HorizontalSplitter):
 
         self.__video.seek(i_next)
 
-    @pyqtSlot(int)
+    @pyqtSlot(int, str)
     def perform_marker_action(self, n, marker_type):
         if self.__video is None:
             return
@@ -290,11 +216,6 @@ class MainWidget(HorizontalSplitter):
         v = Video(self, path)
         self.__set_video_instance(v)
         v.seek(0)
-
-
-DEBUG = False if 'disable_debug' in sys.argv else True
-
-print(f'{DEBUG=}')
 
 
 class MainWindow(QMainWindow):
