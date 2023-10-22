@@ -113,7 +113,6 @@ class LabelWidget(QWidget):
         layout = QVBoxLayout()
         self.__w_labels.setLayout(layout)
 
-        layout.addWidget(QLabel(self, text='aaaaaa'))
 
         for index, name, tags in self.__labels.iter_labels():
             print(index, name, tags)

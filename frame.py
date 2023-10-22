@@ -59,6 +59,7 @@ class FrameViewWidget(QWidget):
         layout_view.addStretch(1)
 
         view = QLabel(self, text='IMAGE')
+        view.setPixmap(QPixmap('res/bg.jpg'))
         layout_view.addWidget(view)
         self.__view = view
 

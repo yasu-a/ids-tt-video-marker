@@ -273,6 +273,7 @@ class MainWindow(QMainWindow):
 
     if DEBUG:
         def showEvent(self, evt):
+            return
             self.file_dropped.emit(r'H:\idsttvideos\singles\20230219_03_Narumoto_Ito.mp4')
 
     def eventFilter(self, source, event):
