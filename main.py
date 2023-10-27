@@ -153,8 +153,8 @@ class MainWidget(HorizontalSplitter):
         (Qt.ControlModifier, Qt.Key_D): FrameAction.NEXT_PAGE_SECONDS,
         (Qt.NoModifier, Qt.Key_Q): FrameAction.PREV_MARKER,
         (Qt.NoModifier, Qt.Key_E): FrameAction.NEXT_MARKER,
-        (Qt.NoModifier, Qt.Key_Left): FrameAction.PREV_MARKER,
-        (Qt.NoModifier, Qt.Key_Right): FrameAction.NEXT_MARKER
+        (Qt.NoModifier, Qt.Key_Left): FrameAction.PREV_PAGE,
+        (Qt.NoModifier, Qt.Key_Right): FrameAction.NEXT_PAGE
     }
 
     @pyqtSlot(QKeyEvent)
