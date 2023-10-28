@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import *
 from marker import MarkerWidget, LabelWidget
 from frame import FrameViewWidget
 from video import Video
+from mark_list import MarkerListWidget
 
 from common import DEBUG, FrameAction
 
@@ -64,7 +65,12 @@ class MainWidget(HorizontalSplitter):
         self.right.addWidget(w_label)
         self.__w_label = w_label
 
-        self.right.addStretch(1)
+        # marker list
+        self.__w_marker_list = MarkerListWidget(self)
+        self.__w_marker_list.setMinimumWidth(350)
+        self.right.addWidget(self.__w_marker_list)
+
+        # self.right.addStretch(1)
 
         # frame viewer
         self.__w_frame = FrameViewWidget(self)
@@ -79,6 +85,14 @@ class MainWidget(HorizontalSplitter):
     def __init_signals(self):
         self.__w_frame.control_clicked.connect(self.perform_frame_action)
         self.__w_label.control_clicked.connect(self.perform_marker_action)
+        self.__w_marker.view_updated.connect(self.__w_marker_list.update_view)
+        self.__w_marker_list.seek_requested.connect(self.__video_seek)
+
+    @pyqtSlot(int)
+    def __video_seek(self, i):
+        if self.__video is None:
+            return
+        self.__video.seek(i)
 
     @pyqtSlot(FrameAction)
     def perform_frame_action(self, act: FrameAction):
@@ -93,7 +107,7 @@ class MainWidget(HorizontalSplitter):
             mark_getter=self.__w_marker.find_marker
         )
 
-        self.__video.seek(i_next)
+        self.__video_seek(i_next)
 
     @pyqtSlot(int, str)
     def perform_marker_action(self, n, marker_type):

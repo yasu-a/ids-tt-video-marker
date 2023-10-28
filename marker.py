@@ -113,7 +113,6 @@ class LabelWidget(QWidget):
         layout = QVBoxLayout()
         self.__w_labels.setLayout(layout)
 
-
         for index, name, tags in self.__labels.iter_labels():
             print(index, name, tags)
             b_name = QPushButton(
@@ -122,7 +121,7 @@ class LabelWidget(QWidget):
                 clicked=self.on_control_clicked,
                 objectName=f'{index},-1'
             )
-            b_name.setFixedWidth(70 * 3 + 1)
+            # b_name.setFixedWidth(70 * 3 + 1)
             layout.addWidget(b_name)
 
             layout_tag = None
@@ -162,6 +161,8 @@ class LabelWidget(QWidget):
 
 
 class MarkerWidget(QWidget):
+    view_updated = pyqtSignal(dict)
+
     @classmethod
     def __default_mark_data(cls):
         return {
@@ -304,6 +305,8 @@ class MarkerWidget(QWidget):
         lst_str = ''.join('!' if i == current_frame_index else '_' for i in idx)
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
         self.__label_center.setText(lst_str)
+
+        self.view_updated.emit(self.__data)
 
     def __load(self, path):
         dir_path = os.path.abspath(os.path.dirname(path))
