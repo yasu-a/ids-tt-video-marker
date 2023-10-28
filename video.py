@@ -4,6 +4,8 @@ import os.path
 import sys
 import traceback
 
+from cache import lru_cache
+
 import cv2
 import numpy as np
 from PyQt5.QtCore import *
@@ -86,7 +88,7 @@ class Video(QObject):
     def frame_time(self):
         return self.__last_frame_timestamp
 
-    @functools.lru_cache(maxsize=int(128e+6 / (1440 * 1040 * 3 * 1 / (2 * 2))))
+    @lru_cache(maxsize=int(256e+6 / (1440 * 1040 * 3 * 1 / (2 * 2))))
     def __read(self, i):
         if self.__prop_frame_index() > i:
             self.__seek_at(i)

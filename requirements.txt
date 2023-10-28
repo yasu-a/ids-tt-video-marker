@@ -1,3 +1,4 @@
 opencv-python
 numpy
 PyQt5
+frozendict
