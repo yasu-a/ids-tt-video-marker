@@ -63,7 +63,10 @@ sys.excepthook = excepthook
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setStyleSheet("*{font-size: 11pt; font-family: Consolas;}")
+    try:
+        app.setStyleSheet("*{font-size: 11pt; font-family: Consolas;}")
+    except:
+        app.setStyleSheet("*{font-size: 11pt; font-family: Courier;}")
     ew = MainWindow()
     ew.show()
     sys.exit(app.exec_())
