@@ -116,7 +116,7 @@ class FrameViewWidget(QWidget):
     def __update_info(self):
         idx, ts, fps, n_fr = self.__idx, self.__ts, self.__fps, self.__n_fr
         self.__label_info.setText(
-            f'{int(ts) // 60:3d}:{int(ts) % 60:02d}.{(ts - int(ts)) * 1000:03.0f} ({idx:7d}/{n_fr:7d}) {fps=}'
+            f'{int(ts) // 60:3d}:{int(ts) % 60:02d}.{(ts - int(ts)) * 1000:03.0f} ({idx:7d}/{n_fr:7d}) {fps=:.2f}'
         )
 
     @pyqtSlot(QImage, int, float)
