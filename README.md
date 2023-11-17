@@ -1,7 +1,7 @@
 # ids-tt-video-marker
 
 # つかいかた
-1. GitHubの右上の「Code」から「Download.zip」
+1. GitHubの右上の「Code」から「Download ZIP」
 2. zipを展開してrun.batを実行
 3. 起動したアプリに動画をドラッグ＆ドロップ
 4. ラベルをつける
