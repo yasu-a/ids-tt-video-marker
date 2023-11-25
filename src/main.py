@@ -318,7 +318,8 @@ class MainWindow(QMainWindow, MainWindowStubs):
         if not check:
             return
 
-        w: MainWidget = self.centralWidget()
+        w = self.centralWidget()
+        assert isinstance(w, MainWidget), type(w)
         w.update_path(video_path)
 
     # noinspection PyArgumentList
@@ -362,7 +363,8 @@ class MainWindow(QMainWindow, MainWindowStubs):
         )
 
     def __init_signals(self):
-        w: MainWidget = self.centralWidget()
+        w = self.centralWidget()
+        assert isinstance(w, MainWidget), type(w)
         self.file_dropped.connect(w.update_path)
         self.key_entered.connect(w.perform_key)
 
@@ -430,7 +432,8 @@ class MainWindow(QMainWindow, MainWindowStubs):
     def showEvent(self, _):
         self.__load_mp4_for_debug()
 
-        sb: MainStatusBar = self.statusBar()
+        sb = self.statusBar()
+        assert isinstance(sb, MainStatusBar), type(sb)
 
         if version.update_available:
             sb.clicked.connect(self.__statusbar_clicked)
