@@ -335,7 +335,21 @@ class MainWindow(QMainWindow, MainWindowStubs):
         if not zip_folder_path:
             return
 
-        labels.poring.export_all(zip_folder_path)
+        result = labels.poring.export_all(zip_folder_path)
+        if not result:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Question)
+            msg.setText('エクスポートしたzipファイルが既に存在します。上書きしますか？')
+            msg.setInformativeText(zip_folder_path)
+            msg.setWindowTitle(self.windowTitle())
+            msg.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
+            msg.setDefaultButton(QMessageBox.No)
+            msg_result = msg.exec()
+            if msg_result == QMessageBox.No:
+                return
+
+            result = labels.poring.export_all(zip_folder_path, exists_ok=True)
+            assert result, result
 
         print('Exported!')
 
