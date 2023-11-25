@@ -1,4 +1,4 @@
-# iDS TT Video Marker ver 2.1
+# iDS TT Video Marker ver 2.1 （2023/11/26 最新版）
 
 ## 主な変更点
 
