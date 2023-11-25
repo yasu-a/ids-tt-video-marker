@@ -282,6 +282,8 @@ class MainWindowStubs:
 
     def show(self): ...
 
+    def windowTitle(self) -> str: ...
+
 
 class MainWindow(QMainWindow, MainWindowStubs):
     file_dropped = pyqtSignal(str)
@@ -308,6 +310,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         QApplication.instance().installEventFilter(self)
 
     def __menu_action_file_open_video(self):
+        # noinspection PyTypeChecker
         video_path, check = QFileDialog.getOpenFileName(
             self,
             '動画ファイルを選択',
@@ -323,6 +326,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         w.update_path(video_path)
 
     def __menu_action_label_export(self):
+        # noinspection PyTypeChecker
         zip_folder_path = QFileDialog.getExistingDirectory(
             self,
             "データのzipファイルを書き出すフォルダを選択"
@@ -344,6 +348,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         msg.exec()
 
     def __menu_action_label_import(self):
+        # noinspection PyTypeChecker
         zip_path, check = QFileDialog.getOpenFileName(
             self,
             'エクスポートしたzipファイルを選択',
@@ -355,9 +360,22 @@ class MainWindow(QMainWindow, MainWindowStubs):
             return
 
         canceled = labels.poring.import_all(zip_path)
+        print('canceled =', canceled)
+
+        if canceled is None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText('zipファイルをインポートできませんでした')
+            msg.setInformativeText(
+                'zipファイルが想定外の構造を含んでいます。これは本当にエクスポートしたzipファイルですか？\n'
+                f'{zip_path}'
+            )
+            msg.setWindowTitle(self.windowTitle())
+            msg.setStandardButtons(QMessageBox.Cancel)
+            msg.exec()
+            return
 
         print('Imported!')
-        print('canceled =', canceled)
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)

@@ -19,14 +19,27 @@ def export_all(dst_path):
 
 
 def import_all(zip_path):
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        for name in zf.namelist():
+            if not name.endswith('.json'):
+                return None
+            if '/' in name:
+                return None
+
     canceled = []
     with zipfile.ZipFile(zip_path, 'r') as zf:
         for name in zf.namelist():
-            dst_json_path = resolve(Domain.MARKDATA, name, make_dirs='self')
+            if not name.endswith('.json'):
+                return None
+            if '/' in name:
+                return None
+            dst_json_path = resolve(Domain.MARKDATA, name, make_dirs='parent')
             if os.path.exists(dst_json_path):
                 canceled.append(dst_json_path)
+                print(zip_path, name, '->', '<canceled>')
                 continue
-            print(zip_path, name, '->', dst_json_path)
+            else:
+                print(zip_path, name, '->', dst_json_path)
             with zf.open(name, 'r') as f_src:
                 with open(dst_json_path, 'wb') as f_dst:
                     f_dst.write(f_src.read())
