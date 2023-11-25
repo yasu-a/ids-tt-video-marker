@@ -276,7 +276,7 @@ class MarkerWidget(QWidget):
         return k
 
     def update_view(self, current_frame_index):
-        n_side = 60
+        n_side = 80
         idx = [i for i in range(current_frame_index - n_side, current_frame_index + n_side + 1)]
 
         dct = {}

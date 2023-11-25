@@ -1,3 +1,4 @@
+import webbrowser
 from typing import Optional
 
 from PyQt5.QtCore import *
@@ -58,8 +59,6 @@ class MainWidget(HorizontalSplitter):
         # b_debug = QPushButton(self)
         # b_debug.clicked.connect(lambda: print(self.find_widget('sd_chooser')))
         # layout.addWidget(b_debug)
-
-        self.right.addWidget(QLabel('Label Configuration', self))
 
         w_label = LabelWidget(self)
         w_label.load_files()
@@ -235,12 +234,32 @@ class MainWidget(HorizontalSplitter):
         v.seek(0)
 
 
+class MainStatusBar(QStatusBar):
+    clicked = pyqtSignal(str)
+
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
+
+    def showMessage(self, message, p_str=None, color=None, font_weight=None):
+        color = color or 'black'
+        font_weight = font_weight or 'normal'
+
+        super().showMessage('')
+        self.setStyleSheet(f'background-color : {color}; font-weight: {font_weight};')
+        super().showMessage(message)
+
+    def mousePressEvent(self, evt):
+        self.clicked.emit(self.currentMessage())
+
+
 class MainWindow(QMainWindow):
     file_dropped = pyqtSignal(str)
     key_entered = pyqtSignal(QKeyEvent)
 
     def __init__(self):
         super().__init__()
+
+        self.setStatusBar(MainStatusBar(self))
 
         self.setCentralWidget(MainWidget(self))
         QApplication.instance().installEventFilter(self)
@@ -289,9 +308,9 @@ class MainWindow(QMainWindow):
         else:
             e.ignore()
 
-    if DEBUG:
-        # noinspection PyPep8Naming
-        def showEvent(self, _):
+    # noinspection PyPep8Naming
+    def __load_mp4_for_debug(self):
+        if DEBUG:
             self.file_dropped.emit(r'H:\idsttvideos\singles\20230219_03_Narumoto_Ito.mp4')
 
     def eventFilter(self, source, event):
@@ -312,3 +331,23 @@ class MainWindow(QMainWindow):
                 self.handle_drop(event)
                 return True
         return super().eventFilter(source, event)
+
+    @pyqtSlot(str)
+    def __statusbar_clicked(self, msg):
+        if msg.startswith('アップデートが利用可能です'):
+            webbrowser.open(version.latest_version_info['url'])
+
+    # noinspection PyPep8Naming
+    def showEvent(self, evt):
+        self.__load_mp4_for_debug()
+
+        sb: MainStatusBar = self.statusBar()
+
+        if version.update_available:
+            sb.clicked.connect(self.__statusbar_clicked)
+            sb.showMessage(
+                f'アップデートが利用可能です（{version.app_version_str}->{version.latest_version}）'
+                f'ここをクリックするとGitHubが開くので　Code -> Download ZIP から最新版をダウンロードしてmarkdataを移行してください。',
+                color='pink',
+                font_weight='bold'
+            )

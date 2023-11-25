@@ -102,7 +102,7 @@ class Video(QObject):
         assert i == idx, (i, idx)
 
         img = self.__retrieve()
-        img = cv2.resize(img, None, fx=0.5, fy=0.5)
+        img = cv2.resize(img, None, fx=0.6, fy=0.6)
         img = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888).rgbSwapped()
         return img, idx, ts
 
