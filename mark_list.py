@@ -1,23 +1,14 @@
 import re
-from copy import deepcopy
-import functools
-import json
-import os.path
-import sys
-import traceback
 
-import cv2
-import numpy as np
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 
 class MarkerListWidget(QWidget):
     seek_requested = pyqtSignal(int)
 
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent: QObject = None):
+        super().__init__(parent)
 
         self.__init_ui()
 

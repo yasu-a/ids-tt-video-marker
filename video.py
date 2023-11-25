@@ -1,16 +1,10 @@
-import functools
-import json
 import os.path
-import sys
-import traceback
-
-from cache import lru_cache
 
 import cv2
-import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+
+from cache import lru_cache
 
 
 class VideoWorker(QObject):

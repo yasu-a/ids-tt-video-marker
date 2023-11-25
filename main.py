@@ -1,20 +1,21 @@
-from enum import Enum
+from typing import Optional
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from marker import MarkerWidget, LabelWidget
-from frame import FrameViewWidget
-from video import Video
-from mark_list import MarkerListWidget
-
+import version
 from common import DEBUG, FrameAction
+from frame import FrameViewWidget
+from mark_list import MarkerListWidget
+from marker import MarkerWidget, LabelWidget
+from video import Video
 
 
 class HorizontalSplitter(QSplitter):
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, orientation=Qt.Horizontal, *args, **kwargs)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
+        self.setOrientation(Qt.Horizontal)
 
         self.__left = None
         self.__right = None
@@ -45,10 +46,10 @@ class HorizontalSplitter(QSplitter):
 
 class MainWidget(HorizontalSplitter):
 
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
 
-        self.__video: Video = None
+        self.__video: Optional[Video] = None
 
         self.__init_ui()
         self.__init_signals()
@@ -58,7 +59,7 @@ class MainWidget(HorizontalSplitter):
         # b_debug.clicked.connect(lambda: print(self.find_widget('sd_chooser')))
         # layout.addWidget(b_debug)
 
-        self.right.addWidget(QLabel(self, text='Label Configuration'))
+        self.right.addWidget(QLabel('Label Configuration', self))
 
         w_label = LabelWidget(self)
         w_label.load_files()
@@ -147,6 +148,7 @@ class MainWidget(HorizontalSplitter):
         Qt.Key_Delete: Qt.Key_0
     }
 
+    # noinspection SpellCheckingInspection
     __TAGGING_KEYS = {
         **{getattr(Qt, f'Key_{ch}'): i for i, ch in enumerate('ZXCVBNM')},
         Qt.Key_Delete: Qt.Key_0
@@ -195,6 +197,7 @@ class MainWidget(HorizontalSplitter):
                 self.perform_frame_action(act)
                 return
 
+    # noinspection PyUnusedLocal
     @pyqtSlot(QImage, int, float)
     def __notice_cache(self, img, idx, ts):
         marker_cache = [
@@ -243,7 +246,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().installEventFilter(self)
 
         self.setGeometry(0, 0, 600, 600)
-        self.setWindowTitle('vosaic?')
+        self.setWindowTitle(f'Vosaic? {version.app_version_str}')
 
         if DEBUG:
             self.setWindowFlag(Qt.WindowStaysOnTopHint)
@@ -255,7 +258,8 @@ class MainWindow(QMainWindow):
         self.file_dropped.connect(w.update_path)
         self.key_entered.connect(w.perform_key)
 
-    def __extract_dnd_event_path(self, e):
+    @staticmethod
+    def __extract_dnd_event_path(e):
         if not e.mimeData().hasUrls():
             return None
         urls = e.mimeData().urls()
@@ -286,7 +290,8 @@ class MainWindow(QMainWindow):
             e.ignore()
 
     if DEBUG:
-        def showEvent(self, evt):
+        # noinspection PyPep8Naming
+        def showEvent(self, _):
             self.file_dropped.emit(r'H:\idsttvideos\singles\20230219_03_Narumoto_Ito.mp4')
 
     def eventFilter(self, source, event):

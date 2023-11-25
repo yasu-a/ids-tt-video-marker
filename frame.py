@@ -1,25 +1,15 @@
-import functools
-import json
-import os.path
-import sys
-import traceback
-
-import cv2
-import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from common import FrameAction
 
-from video import Video
-
 
 class FrameViewWidget(QWidget):
     control_clicked = pyqtSignal(FrameAction)
 
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
 
         self.__fps = -1
         self.__n_fr = -1
@@ -27,6 +17,8 @@ class FrameViewWidget(QWidget):
         self.__ts = -1
 
         self.__view = None
+
+        self.__label_info: Optional[QLabel] = None
 
         self.init_ui()
 
@@ -58,7 +50,7 @@ class FrameViewWidget(QWidget):
 
         layout_view.addStretch(1)
 
-        view = QLabel(self, text='IMAGE')
+        view = QLabel('IMAGE', self)
         view.setPixmap(QPixmap('res/bg.jpg'))
         layout_view.addWidget(view)
         self.__view = view
@@ -72,16 +64,16 @@ class FrameViewWidget(QWidget):
 
         layout_info.addStretch(1)
 
-        def add_control_button(text, act, la):
-            b = QPushButton(self, text=text)
+        def add_control_button(text_, act_, la_):
+            b = QPushButton(text_, self)
             b.setFixedWidth(50)
-            b.clicked.connect(lambda *args: self.control_clicked.emit(act))
-            la.addWidget(b)
+            b.clicked.connect(lambda *args: self.control_clicked.emit(act_))
+            la_.addWidget(b)
 
         for text, act in self.CONTROL_ACTIONS[0]:
             add_control_button(text, act, layout_info)
 
-        label_info = QLabel(self, text='info')
+        label_info = QLabel('info', self)
         layout_info.addWidget(label_info)
         self.__label_info = label_info
 
@@ -108,6 +100,7 @@ class FrameViewWidget(QWidget):
     def show_active(self):
         self.setEnabled(True)
 
+    # noinspection PyUnusedLocal
     @pyqtSlot(str, float, int)
     def setup_meta(self, path, fps, n_fr):
         self.__fps = fps
@@ -116,7 +109,8 @@ class FrameViewWidget(QWidget):
     def __update_info(self):
         idx, ts, fps, n_fr = self.__idx, self.__ts, self.__fps, self.__n_fr
         self.__label_info.setText(
-            f'{int(ts) // 60:3d}:{int(ts) % 60:02d}.{(ts - int(ts)) * 1000:03.0f} ({idx:7d}/{n_fr:7d}) {fps=:.2f}'
+            f'{int(ts) // 60:3d}:{int(ts) % 60:02d}.{(ts - int(ts)) * 1000:03.0f} '
+            f'({idx:7d}/{n_fr:7d}) {fps=:.2f}'
         )
 
     @pyqtSlot(QImage, int, float)
