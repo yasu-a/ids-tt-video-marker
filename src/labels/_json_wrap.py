@@ -7,7 +7,7 @@ from typing import Optional, Union
 import numpy as np
 from PyQt5.QtCore import QMutex
 
-import label_data_json_compat as compat
+import _json_compat as compat
 import machine
 from res import resolve, Domain
 

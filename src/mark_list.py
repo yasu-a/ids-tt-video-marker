@@ -3,7 +3,7 @@ import re
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from label_data_json import LabelDataJson
+from labels import LabelDataJson
 
 
 class MarkerListWidget(QWidget):

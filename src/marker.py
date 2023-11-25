@@ -6,7 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from label_data_json import LabelDataJson
+from labels import LabelDataJson
 from res import resolve, Domain
 
 
