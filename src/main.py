@@ -5,6 +5,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import labels.poring
 import version
 from common import DEBUG, FrameAction
 from frame import FrameViewWidget
@@ -307,10 +308,9 @@ class MainWindow(QMainWindow, MainWindowStubs):
         QApplication.instance().installEventFilter(self)
 
     def __menu_action_file_open_video(self):
-        # noinspection PyTypeChecker
         video_path, check = QFileDialog.getOpenFileName(
             self,
-            '動画ファイルを選択してください',
+            '動画ファイルを選択',
             '',
             '動画ファイル (*.mp4)'
         )
@@ -321,6 +321,58 @@ class MainWindow(QMainWindow, MainWindowStubs):
         w = self.centralWidget()
         assert isinstance(w, MainWidget), type(w)
         w.update_path(video_path)
+
+    def __menu_action_label_export(self):
+        zip_folder_path = QFileDialog.getExistingDirectory(
+            self,
+            "データのzipファイルを書き出すフォルダを選択"
+        ).strip()
+
+        if not zip_folder_path:
+            return
+
+        labels.poring.export_all(zip_folder_path)
+
+        print('Exported!')
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('次のフォルダにラベルデータをエクスポートしてzipファイルを生成しました')
+        msg.setInformativeText(zip_folder_path)
+        msg.setWindowTitle(self.windowTitle())
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
+
+    def __menu_action_label_import(self):
+        zip_path, check = QFileDialog.getOpenFileName(
+            self,
+            'エクスポートしたzipファイルを選択',
+            '',
+            'zipファイル (*.zip)'
+        )
+
+        if not check:
+            return
+
+        canceled = labels.poring.import_all(zip_path)
+
+        print('Imported!')
+        print('canceled =', canceled)
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        if canceled:
+            msg.setText(
+                'インポートが完了しましたが、'
+                'markdataにすでに存在する次のファイルがインポートされませんでした。\n'
+                '強制的に上書きする場合はmarkdataフォルダの対象のファイルを手動で削除してください。'
+            )
+        else:
+            msg.setText('インポートが完了しました')
+        msg.setInformativeText('\n'.join(canceled))
+        msg.setWindowTitle(self.windowTitle())
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
 
     # noinspection PyArgumentList
     def __init_menu_bar(self):
@@ -352,6 +404,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
             QAction(
                 '&Export',
                 self,
+                triggered=self.__menu_action_label_export
             )
         )
 
@@ -359,6 +412,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
             QAction(
                 '&Import',
                 self,
+                triggered=self.__menu_action_label_import
             )
         )
 

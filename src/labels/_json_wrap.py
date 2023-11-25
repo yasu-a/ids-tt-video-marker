@@ -1,32 +1,16 @@
 import codecs
 import json
 import os.path
-import zipfile
 from typing import Optional, Union
 
 import numpy as np
 from PyQt5.QtCore import QMutex
 
-import machine
 from res import resolve, Domain
 from . import _backup as backup
 from . import _json_compat as compat
 
-MARKDATA_PATH = resolve(Domain.MARKDATA)
-
-
-def export_all(dst_path):
-    os.makedirs(dst_path, exist_ok=True)
-
-    zf_path = os.path.join(dst_path, f'iDSTTVideoMarkerData_{machine.platform_hash_digest}.zip')
-
-    with zipfile.ZipFile(zf_path, 'w') as zf:
-        for json_name in os.listdir(MARKDATA_PATH):
-            json_path = os.path.join(MARKDATA_PATH, json_name)
-            with codecs.open(json_path, 'rb') as f_json:
-                with zf.open(json_name, 'w') as f_zipped_file:
-                    # noinspection PyTypeChecker
-                    f_zipped_file.write(f_json.read())
+MARKDATA_PATH = resolve(Domain.MARKDATA, make_dirs='self')
 
 
 # When upgrade version, make sure you ...
