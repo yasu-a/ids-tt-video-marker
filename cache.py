@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 import numpy as np
 from frozendict import frozendict
@@ -51,7 +51,7 @@ class CacheKey(NamedTuple):
     kwargs: frozendict
 
     @classmethod
-    def from_params(cls, args: list | tuple, kwargs: dict):
+    def from_params(cls, args: Union[list, tuple], kwargs: dict):
         return cls(args=tuple(args), kwargs=frozendict(kwargs))
 
     @property
