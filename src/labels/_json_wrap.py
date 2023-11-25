@@ -7,7 +7,7 @@ from typing import Optional, Union
 import numpy as np
 from PyQt5.QtCore import QMutex
 
-import _json_compat as compat
+import labels
 import machine
 from res import resolve, Domain
 
@@ -38,7 +38,7 @@ class LabelDataJson:
 
     @classmethod
     def __default_json(cls, video_name):
-        return compat.create_default(
+        return labels.compat.create_default(
             version=cls.VERSION,
             params=dict(
                 video_name=video_name
@@ -64,7 +64,7 @@ class LabelDataJson:
         if os.path.exists(self.json_path):
             with codecs.open(self.json_path, 'r', encoding='utf-8') as f:
                 json_root = json.load(f)
-            json_root = compat.convert(
+            json_root = labels.compat.convert(
                 json_path=self.json_path,
                 json_root=json_root
             )
