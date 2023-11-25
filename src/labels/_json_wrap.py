@@ -10,8 +10,6 @@ from res import resolve, Domain
 from . import _backup as backup
 from . import _json_compat as compat
 
-MARKDATA_PATH = resolve(Domain.MARKDATA, make_dirs='self')
-
 
 # When upgrade version, make sure you ...
 #  - edit LabelDataJson.VERSION = <new-version>
@@ -40,9 +38,10 @@ class LabelDataJson:
 
     @property
     def json_path(self):
-        return os.path.join(
-            MARKDATA_PATH,
-            f'{self.__video_name}.json'
+        return resolve(
+            Domain.MARKDATA,
+            f'{self.__video_name}.json',
+            make_dirs='parent'
         )
 
     def __load_json(self):
@@ -69,8 +68,6 @@ class LabelDataJson:
         if self.__json_root is None:
             return
 
-        json_dir_path = os.path.dirname(self.json_path)
-        os.makedirs(json_dir_path, exist_ok=True)
         with codecs.open(self.json_path, 'w', encoding='utf-8') as f:
             json.dump(self.__json_root, f, indent=2, sort_keys=True, ensure_ascii=False)
 
