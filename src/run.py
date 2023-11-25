@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import *
 
 from common import DEBUG
 from main import MainWindow
+from res import resolve, Domain
 
 
 def get_sys_info():
@@ -34,8 +35,8 @@ def excepthook(exc_type, exc_value, exc_tb):
 
     if not DEBUG:
         str_now = re.sub(r'[^0-9a-zA-Z]', '_', str(datetime.datetime.now())[:-7])
-        dump_path = os.path.join(
-            './errors',
+        dump_path = resolve(
+            Domain.ERRORS,
             'log_' + str_now + '.txt'
         )
         dump_path = os.path.normpath(dump_path)

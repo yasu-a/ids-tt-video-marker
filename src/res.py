@@ -12,6 +12,7 @@ print(f'{_PROJECT_ROOT=}')
 
 
 class Domain(Enum):
+    ERRORS = 'error-logs'
     RESOURCES = 'resources'
     MARKDATA = 'markdata'
     MARKDATA_BACKUP = 'markdata-backup'
