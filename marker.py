@@ -1,12 +1,6 @@
-import re
-from copy import deepcopy
-import functools
 import json
 import os.path
-import sys
-import traceback
 
-import cv2
 import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -74,8 +68,8 @@ class LabelData:
 class LabelWidget(QWidget):
     control_clicked = pyqtSignal(int, str)  # n, marker_type
 
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
 
         self.__labels = None
 
@@ -115,8 +109,9 @@ class LabelWidget(QWidget):
 
         for index, name, tags in self.__labels.iter_labels():
             print(index, name, tags)
+            # noinspection PyArgumentList
             b_name = QPushButton(
-                self,
+                parent=self,
                 text=f'{name} [{index}]',
                 clicked=self.on_control_clicked,
                 objectName=f'{index},-1'
@@ -134,8 +129,9 @@ class LabelWidget(QWidget):
                         layout_tag.addStretch(1)
                     layout_tag = QHBoxLayout()
                     layout.addLayout(layout_tag)
+                # noinspection PyArgumentList
                 b_tag = QPushButton(
-                    self,
+                    parent=self,
                     text=tag,
                     clicked=self.on_control_clicked,
                     objectName=f'{index},{i}'
@@ -170,8 +166,8 @@ class MarkerWidget(QWidget):
             'tags': {}
         }
 
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
 
         self.__output_dir_path = './markdata'
         self.__path = None
@@ -184,15 +180,18 @@ class MarkerWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        label_stream = QLabel(self, text='STREAM')
+        label_stream = QLabel('STREAM', self)
+        label_stream.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_stream)
         self.__label_stream = label_stream
 
-        label_tl = QLabel(self, text='TL')
+        label_tl = QLabel('TL', self)
+        label_tl.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_tl)
         self.__label_tl = label_tl
 
-        label_center = QLabel(self, text='C')
+        label_center = QLabel('C', self)
+        label_center.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_center)
         self.__label_center = label_center
 
@@ -277,7 +276,7 @@ class MarkerWidget(QWidget):
         return k
 
     def update_view(self, current_frame_index):
-        n_side = 60
+        n_side = 80
         idx = [i for i in range(current_frame_index - n_side, current_frame_index + n_side + 1)]
 
         dct = {}
@@ -324,6 +323,7 @@ class MarkerWidget(QWidget):
         with open(self.__path, 'w') as f:
             json.dump(self.__data, f, indent=True, sort_keys=True)
 
+    # noinspection PyUnusedLocal
     @pyqtSlot(str, float, int)
     def setup_meta(self, path, fps, n_fr):
         json_path = os.path.join(
@@ -332,6 +332,7 @@ class MarkerWidget(QWidget):
         )
         self.__load(json_path)
 
+    # noinspection PyUnusedLocal
     @pyqtSlot(QImage, int, float)
     def setup_frame(self, img, idx, ts):
         self.update_view(idx)

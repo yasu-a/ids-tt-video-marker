@@ -1,16 +1,10 @@
-import functools
-import json
 import os.path
-import sys
-import traceback
-
-from cache import lru_cache
 
 import cv2
-import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+
+from cache import lru_cache
 
 
 class VideoWorker(QObject):
@@ -108,7 +102,7 @@ class Video(QObject):
         assert i == idx, (i, idx)
 
         img = self.__retrieve()
-        img = cv2.resize(img, None, fx=0.5, fy=0.5)
+        img = cv2.resize(img, None, fx=0.6, fy=0.6)
         img = QImage(img.data, img.shape[1], img.shape[0], QImage.Format_RGB888).rgbSwapped()
         return img, idx, ts
 

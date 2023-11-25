@@ -4,26 +4,26 @@ import os
 import re
 import sys
 import traceback
+from pprint import pformat
 
 from PyQt5.QtWidgets import *
 
 from common import DEBUG
 from main import MainWindow
 
-from pprint import pformat
-
 
 def get_sys_info():
     import platform
     import socket
-    info = {}
-    info['version'] = sys.version_info
-    info['platform'] = platform.system()
-    info['platform-release'] = platform.release()
-    info['platform-version'] = platform.version()
-    info['architecture'] = platform.machine()
-    info['hostname'] = socket.gethostname()
-    info['processor'] = platform.processor()
+    info = {
+        'version': sys.version_info,
+        'platform': platform.system(),
+        'platform-release': platform.release(),
+        'platform-version': platform.version(),
+        'architecture': platform.machine(),
+        'hostname': socket.gethostname(),
+        'processor': platform.processor()
+    }
     info = {k: str(v) for k, v in info.items()}
     return info
 
@@ -63,9 +63,9 @@ sys.excepthook = excepthook
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    try:
+    if os.name == 'nt':
         app.setStyleSheet("*{font-size: 11pt; font-family: Consolas;}")
-    except:
+    else:
         app.setStyleSheet("*{font-size: 11pt; font-family: Courier;}")
     ew = MainWindow()
     ew.show()

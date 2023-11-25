@@ -1,9 +1,6 @@
 import json
-import os
-import urllib.parse
-import urllib.request
-import bs4
 import re
+import urllib.request
 from pprint import pprint
 
 _APP_INFO_JSON_PATH = 'app_info.json'

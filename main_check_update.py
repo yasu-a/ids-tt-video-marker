@@ -1,21 +1,11 @@
-import codecs
-import datetime
 import os
-import re
 import sys
 import traceback
+import webbrowser
 
-from PyQt5.QtWidgets import *
-
-from common import DEBUG
-
-from pprint import pformat
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 import version
-import webbrowser
 
 
 def excepthook(exc_type, exc_value, exc_tb):
@@ -28,8 +18,8 @@ sys.excepthook = excepthook
 
 
 class MainWidget(QWidget):
-    def __init__(self, parent: QObject, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
 
         self.__init_ui()
         self.__url = None
@@ -65,10 +55,10 @@ class MainWidget(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    try:
+    if os.name == 'nt':
         app.setStyleSheet("*{font-size: 11pt; font-family: Consolas;}")
-    except:
+    else:
         app.setStyleSheet("*{font-size: 11pt; font-family: Courier;}")
-    ew = MainWidget(None)
+    ew = MainWidget()
     ew.show()
     sys.exit(app.exec_())
