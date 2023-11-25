@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from typing import Literal
 
 _FILE_ABSOLUTE = os.path.abspath(__file__)
 _SOURCES_ROOT = os.path.dirname(_FILE_ABSOLUTE)
@@ -13,6 +14,7 @@ print(f'{_PROJECT_ROOT=}')
 class Domain(Enum):
     RESOURCES = 'resources'
     MARKDATA = 'markdata'
+    MARKDATA_BACKUP = 'markdata-backup'
     APPINFO = 'appinfo'
     TEMPLATE = 'label-template'
 
@@ -24,7 +26,7 @@ class Domain(Enum):
         return self.__dir_name
 
 
-def resolve(domain: Domain, *args) -> str:
+def resolve(domain: Domain, *args, make_dirs: Literal['parent', 'self'] = None) -> str:
     path = os.path.join(
         _PROJECT_ROOT,
         domain.dir_name,
@@ -32,4 +34,13 @@ def resolve(domain: Domain, *args) -> str:
     )
     path = os.path.normpath(path)
     path = os.path.abspath(path)
+
+    if make_dirs is not None:
+        if make_dirs == 'parent':
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        elif make_dirs == 'self':
+            os.makedirs(path, exist_ok=True)
+        else:
+            assert False, make_dirs
+
     return path
