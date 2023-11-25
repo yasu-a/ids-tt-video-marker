@@ -262,10 +262,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setStatusBar(MainStatusBar(self))
-
-        self.setCentralWidget(MainWidget(self))
-        QApplication.instance().installEventFilter(self)
+        self.__init_ui()
+        self.__init_menu_bar()
 
         self.setGeometry(0, 0, 600, 600)
         self.setWindowTitle(f'Vosaic? {version.app_version_str}')
@@ -275,7 +273,69 @@ class MainWindow(QMainWindow):
 
         self.__init_signals()
 
+    def __init_ui(self):
+        self.setStatusBar(MainStatusBar(self))
+
+        self.setCentralWidget(MainWidget(self))
+        QApplication.instance().installEventFilter(self)
+
+    def __menu_action_file_open_video(self):
+        video_path, check = QFileDialog.getOpenFileName(
+            self,
+            '動画ファイルを選択してください',
+            '',
+            '動画ファイル (*.mp4)'
+        )
+
+        if not check:
+            return
+
+        # noinspection PyTypeChecker
+        w: MainWidget = self.centralWidget()
+        w.update_path(video_path)
+
+    # noinspection PyArgumentList
+    def __init_menu_bar(self):
+        mb = self.menuBar()
+
+        menu = mb.addMenu('&File')
+
+        menu.addAction(
+            QAction(
+                '&Open Video',
+                self,
+                triggered=self.__menu_action_file_open_video
+            )
+        )
+
+        menu.addSeparator()
+
+        menu.addAction(
+            QAction(
+                '&Exit',
+                self,
+                triggered=QApplication.quit
+            )
+        )
+
+        menu = mb.addMenu('&Label')
+
+        menu.addAction(
+            QAction(
+                '&Export',
+                self,
+            )
+        )
+
+        menu.addAction(
+            QAction(
+                '&Import',
+                self,
+            )
+        )
+
     def __init_signals(self):
+        # noinspection PyTypeChecker
         w: MainWidget = self.centralWidget()
         self.file_dropped.connect(w.update_path)
         self.key_entered.connect(w.perform_key)
@@ -344,6 +404,7 @@ class MainWindow(QMainWindow):
     def showEvent(self, evt):
         self.__load_mp4_for_debug()
 
+        # noinspection PyTypeChecker
         sb: MainStatusBar = self.statusBar()
 
         if version.update_available:
