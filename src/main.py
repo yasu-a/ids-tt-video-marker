@@ -1,5 +1,5 @@
 import webbrowser
-from typing import Optional
+from typing import Optional, Literal
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -110,18 +110,21 @@ class MainWidget(HorizontalSplitter):
         self.__video_seek(i_next)
 
     @pyqtSlot(int, str)
-    def perform_marker_action(self, n, marker_type):
+    def perform_marker_action(self, number: int, marker_type: Literal['label', 'tag']):
+        assert isinstance(number, int), number
+        assert marker_type in ['label', 'tag'], marker_type
+
         if self.__video is None:
             return
 
         i = self.__video.frame_index
         m: MarkerWidget = self.__w_marker
         if marker_type == 'label':
-            if n == 0:
+            if number == 0:
                 m.remove_marker(i)
             else:
                 m_current = m.get_marker(i)
-                m_request = self.__w_label.labels.index_to_label(n)
+                m_request = self.__w_label.labels.index_to_label(number - 1)
                 if m_current == m_request:
                     m.remove_marker(i)
                     m.update_view(i)
@@ -131,7 +134,7 @@ class MainWidget(HorizontalSplitter):
         elif marker_type == 'tag':
             ts_current = m.get_tags(i)
             m_current = m.get_marker(i)
-            t_request = self.__w_label.labels.index_to_tag(m_current, n)
+            t_request = self.__w_label.labels.index_to_tag(m_current, number)
             if t_request is not None:
                 if t_request in ts_current:
                     m.remove_tag(i, t_request)

@@ -1,8 +1,11 @@
+from typing import Optional
+
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from common import FrameAction
+from res import resolve, Domain
 
 
 class FrameViewWidget(QWidget):
@@ -51,7 +54,7 @@ class FrameViewWidget(QWidget):
         layout_view.addStretch(1)
 
         view = QLabel('IMAGE', self)
-        view.setPixmap(QPixmap('res/bg.jpg'))
+        view.setPixmap(QPixmap(resolve(Domain.RESOURCES, 'bg.jpg')))
         layout_view.addWidget(view)
         self.__view = view
 

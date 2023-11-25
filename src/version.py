@@ -3,7 +3,9 @@ import re
 import urllib.request
 from pprint import pprint
 
-_APP_INFO_JSON_PATH = 'app_info.json'
+from res import resolve, Domain
+
+_APP_INFO_JSON_PATH = resolve(Domain.APPINFO, 'appinfo.json')
 _GITHUB_VERSIONS_URL = 'https://api.github.com/repos/yasu-a/ids-tt-video-marker/branches'
 _GITHUB_BRANCH_URL_FORMAT = 'https://github.com/yasu-a/ids-tt-video-marker/tree/{branch_name}'
 

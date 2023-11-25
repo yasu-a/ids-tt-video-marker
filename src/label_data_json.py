@@ -9,8 +9,9 @@ from PyQt5.QtCore import QMutex
 
 import label_data_json_compat as compat
 import machine
+from res import resolve, Domain
 
-MARKDATA_PATH = './markdata'
+MARKDATA_PATH = resolve(Domain.MARKDATA)
 
 
 def export_all(dst_path):
