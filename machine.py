@@ -1,5 +1,5 @@
-import platform
 import hashlib
+import platform
 
 system = platform.system()
 node = platform.node()

@@ -1,18 +1,14 @@
-import numpy as np
-from typing import Optional, Union
-import copy
-import json
 import codecs
+import json
 import os.path
+import zipfile
+from typing import Optional, Union
 
-import version
-import machine
+import numpy as np
+from PyQt5.QtCore import QMutex
 
 import label_data_json_compat as compat
-
-import zipfile
-
-from PyQt5.QtCore import QMutex
+import machine
 
 MARKDATA_PATH = './markdata'
 
@@ -104,7 +100,6 @@ class LabelDataJson:
             self.__modified = True
 
         def __frames(self) -> dict[str, dict]:
-            from pprint import pprint
             return self.__jr['frames']
 
         def list_labeled_frame_indexes(self) -> list[int]:
