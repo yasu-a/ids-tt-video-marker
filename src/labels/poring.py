@@ -6,8 +6,10 @@ import machine
 from res import resolve, Domain
 
 
-def export_all(dst_path):
+def export_all(dst_path, exists_ok=False):
     zf_path = os.path.join(dst_path, f'iDSTTVideoMarkerData_{machine.platform_hash_digest}.zip')
+    if os.path.exists(zf_path) and not exists_ok:
+        return False
 
     with zipfile.ZipFile(zf_path, 'w') as zf:
         for json_name in os.listdir(resolve(Domain.MARKDATA, make_dirs='self')):
@@ -16,6 +18,8 @@ def export_all(dst_path):
                 with zf.open(json_name, 'w') as f_zipped_file:
                     # noinspection PyTypeChecker
                     f_zipped_file.write(f_json.read())
+
+    return True
 
 
 def import_all(zip_path):
