@@ -235,7 +235,8 @@ class MarkerWidget(QWidget):
                          range(current_frame_index - n_side, current_frame_index + n_side + 1)]
 
         dct = {}
-        for fi in frame_indexes:
+        # overwrite `current_frame_index` to show central item on top
+        for fi in (*frame_indexes, current_frame_index):
             marker = self.get_marker(fi)
             if marker is not None:
                 tags = self.get_tags(fi)
