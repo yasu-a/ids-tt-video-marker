@@ -1,3 +1,5 @@
+from typing import Optional
+
 import json
 import os.path
 
@@ -5,6 +7,8 @@ import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+
+from label_data_json import LabelDataJson
 
 
 class LabelDataFormatError(RuntimeError):
@@ -157,22 +161,15 @@ class LabelWidget(QWidget):
 
 
 class MarkerWidget(QWidget):
-    view_updated = pyqtSignal(dict)
-
-    @classmethod
-    def __default_mark_data(cls):
-        return {
-            'markers': {},
-            'tags': {}
-        }
+    view_updated = pyqtSignal(LabelDataJson)
 
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
 
         self.__output_dir_path = './markdata'
-        self.__path = None
+        self.__json_path = None
 
-        self.__data = None
+        self.__data: Optional[LabelDataJson] = None
 
         self.__init_ui()
 
@@ -195,142 +192,79 @@ class MarkerWidget(QWidget):
         layout.addWidget(label_center)
         self.__label_center = label_center
 
-    def get_marker(self, i):
-        return self.__data['markers'].get(str(i))
+    def get_marker(self, fi: int) -> str:
+        with self.__data as accessor:
+            return accessor.get_label(fi)
 
-    def get_marker_subtotal(self, i):
-        ks = np.array([int(k) for k, v in self.__data['markers'].items()])
-        vs = np.array([v for k, v in self.__data['markers'].items()])
+    def get_marker_subtotal(self, fi: int) -> Optional[int]:
+        with self.__data as accessor:
+            return accessor.get_label_count(fi)
 
-        sort_arg = np.argsort(ks)
-        ks = ks[sort_arg]
-        vs = vs[sort_arg]
+    def get_tags(self, fi: int) -> tuple[str, ...]:
+        with self.__data as accessor:
+            return accessor.get_tags(fi)
 
-        return np.count_nonzero(vs[ks <= i] == self.get_marker(i))
+    def set_marker(self, fi: int, label_name: str):
+        with self.__data as accessor:
+            if label_name is None:
+                accessor.remove_label(fi)
+            else:
+                accessor.set_label(fi, label_name)
 
-    def get_tags(self, i):
-        return tuple(self.__data['tags'].get(str(i)) or [])
+    def add_tag(self, fi: int, tag_name: str):
+        with self.__data as accessor:
+            accessor.add_tag(fi, tag_name)
 
-    def set_marker(self, i, name):
-        if name is None:
-            self.remove_marker(i)
-        else:
-            self.__data['markers'][str(i)] = name
-            self.__save()
+    def remove_marker(self, fi: int):
+        with self.__data as accessor:
+            accessor.remove_label(fi)
 
-    def add_tag(self, i, tag_name):
-        if self.get_marker(i) is None:
-            return
-        if str(i) not in self.__data['tags']:
-            self.__data['tags'][str(i)] = []
-        if tag_name in self.__data['tags'][str(i)]:
-            return
-        self.__data['tags'][str(i)].append(tag_name)
-        self.__save()
+    def remove_tag(self, fi: int, tag_name: str):
+        with self.__data as accessor:
+            accessor.remove_tag(fi, tag_name)
 
-    def remove_marker(self, i):
-        try:
-            del self.__data['markers'][str(i)]
-            try:
-                del self.__data['tags'][str(i)]
-            except KeyError:
-                pass
-        except KeyError:
-            pass
-        else:
-            self.__save()
-
-    def remove_tag(self, i, tag_name):
-        if self.get_marker(i) is None:
-            return
-        if str(i) not in self.__data['tags']:
-            return
-        if tag_name not in self.__data['tags'][str(i)]:
-            return
-        self.__data['tags'][str(i)].remove(tag_name)
-        if not self.__data['tags'][str(i)]:
-            del self.__data['tags'][str(i)]
-        self.__save()
-
-    def find_marker(self, i, direction, n=None):
-        ks = np.array([int(k) for k, v in self.__data['markers'].items()])
-        arg_sort = np.argsort(ks)
-        ks = ks[arg_sort]
-
-        if n is None:
-            k = None
-        else:
-            k = []
-        if direction < 0:
-            if ks[ks < i].size != 0:
-                if n is None:
-                    k = ks[ks < i].max()
-                else:
-                    k = ks[ks < i][ks[ks < i].argsort()[-n:]]
-        else:
-            if ks[ks > i].size != 0:
-                if n is None:
-                    k = ks[ks > i].min()
-                else:
-                    k = ks[ks > i][ks[ks > i].argsort()[:n]]
-        return k
+    def find_marker(self, fi: int, direction: int, n: int = None) -> list[int]:
+        with self.__data as accessor:
+            return accessor.find_nearest_labeled_index(fi, direction, n)
 
     def update_view(self, current_frame_index):
         n_side = 80
-        idx = [i for i in range(current_frame_index - n_side, current_frame_index + n_side + 1)]
+        frame_indexes = [fi for fi in
+                         range(current_frame_index - n_side, current_frame_index + n_side + 1)]
 
         dct = {}
-        for i in idx:
-            marker = self.get_marker(i)
+        for fi in frame_indexes:
+            marker = self.get_marker(fi)
             if marker is not None:
-                tags = self.get_tags(i)
+                tags = self.get_tags(fi)
                 tags = '[' + ','.join(tags) + ']' if tags else ''
-                subtotal = self.get_marker_subtotal(i)
+                subtotal = self.get_marker_subtotal(fi)
                 for j, ch in enumerate(f'!{marker}{tags}({subtotal})'):
-                    dct[i + j] = ch
-        lst_str = ''.join([dct.get(i, '_') for i in idx])
+                    dct[fi + j] = ch
+        lst_str = ''.join([dct.get(i, '_') for i in frame_indexes])
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
         self.__label_stream.setText(lst_str)
 
         dct = {}
-        for i in idx:
-            if i % 10 == 0:
-                for j, ch in enumerate(f'|_{i}' if i >= 0 else ''):
-                    dct[i + j] = ch
-        lst_str = ''.join([dct.get(i, '_') for i in idx])
+        for fi in frame_indexes:
+            if fi % 10 == 0:
+                for j, ch in enumerate(f'|_{fi}' if fi >= 0 else ''):
+                    dct[fi + j] = ch
+        lst_str = ''.join([dct.get(i, '_') for i in frame_indexes])
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
         self.__label_tl.setText(lst_str)
 
-        lst_str = ''.join('!' if i == current_frame_index else '_' for i in idx)
+        lst_str = ''.join('!' if i == current_frame_index else '_' for i in frame_indexes)
         lst_str = f'<html><font size="2">{lst_str}</font></html>'
         self.__label_center.setText(lst_str)
 
         self.view_updated.emit(self.__data)
 
-    def __load(self, path):
-        dir_path = os.path.abspath(os.path.dirname(path))
-        os.makedirs(dir_path, exist_ok=True)
-
-        self.__path = path
-
-        if not os.path.exists(self.__path):
-            self.__data = self.__default_mark_data()
-        else:
-            with open(self.__path, 'r') as f:
-                self.__data = json.load(f)
-
-    def __save(self):
-        with open(self.__path, 'w') as f:
-            json.dump(self.__data, f, indent=True, sort_keys=True)
-
     # noinspection PyUnusedLocal
     @pyqtSlot(str, float, int)
-    def setup_meta(self, path, fps, n_fr):
-        json_path = os.path.join(
-            self.__output_dir_path,
-            os.path.splitext(os.path.split(path)[1])[0] + '.json'
-        )
-        self.__load(json_path)
+    def setup_meta(self, video_path, fps, n_fr):
+        video_name = os.path.splitext(os.path.split(video_path)[1])[0]
+        self.__data = LabelDataJson(video_name=video_name)
 
     # noinspection PyUnusedLocal
     @pyqtSlot(QImage, int, float)

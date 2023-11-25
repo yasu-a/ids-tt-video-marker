@@ -3,6 +3,8 @@ import re
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
+from label_data_json import LabelDataJson
+
 
 class MarkerListWidget(QWidget):
     seek_requested = pyqtSignal(int)
@@ -37,17 +39,14 @@ class MarkerListWidget(QWidget):
             i = int(re.match(r'\s*(\d+)', items[0].text())[1])
             self.seek_requested.emit(i)
 
-    @pyqtSlot(dict)
-    def update_view(self, data):
-        markers: dict[int, str] = {int(k): v for k, v in data['markers'].items()}
-        tags: dict[int, list[str]] = {int(k): v for k, v in data['tags'].items()}
-
+    @pyqtSlot(LabelDataJson)
+    def update_view(self, data: LabelDataJson):
         self.__lw.clear()
 
-        marker_count: dict[str, int] = {k: 0 for k in markers.values()}
-        for i in sorted(markers.keys()):
-            marker: str = markers[i]
-            tag: list[str] = tags.get(i) or []
-            count: int = marker_count[marker]
-            self.__lw.addItem(f'{i:>7d} {marker!s:<10s}({count + 1:>3d}) {"/".join(tag)!s}')
-            marker_count[marker] += 1
+        with data as accessor:
+            for fi in accessor.list_labeled_frame_indexes():
+                label = accessor.get_label(fi)
+                tags = accessor.get_tags(fi)
+                count = accessor.get_label_count(fi)
+                text = f'{fi:>7d} {label!s:<10s}({count:>3d}) {"/".join(tags)!s}'
+                self.__lw.addItem(text)
