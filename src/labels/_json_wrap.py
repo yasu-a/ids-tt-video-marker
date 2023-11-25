@@ -9,6 +9,7 @@ from PyQt5.QtCore import QMutex
 
 import machine
 from res import resolve, Domain
+from . import _backup as backup
 from . import _json_compat as compat
 
 MARKDATA_PATH = resolve(Domain.MARKDATA)
@@ -64,6 +65,7 @@ class LabelDataJson:
         if os.path.exists(self.json_path):
             with codecs.open(self.json_path, 'r', encoding='utf-8') as f:
                 json_root = json.load(f)
+            backup.take(self.json_path, json_root)
             json_root = compat.convert(
                 json_path=self.json_path,
                 json_root=json_root
