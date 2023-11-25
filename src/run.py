@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import *
 
 from common import DEBUG
 from main import MainWindow
+from res import resolve, Domain
 
 
 def get_sys_info():
@@ -34,12 +35,11 @@ def excepthook(exc_type, exc_value, exc_tb):
 
     if not DEBUG:
         str_now = re.sub(r'[^0-9a-zA-Z]', '_', str(datetime.datetime.now())[:-7])
-        dump_path = os.path.join(
-            './errors',
-            'log_' + str_now + '.txt'
+        dump_path = resolve(
+            Domain.ERRORS,
+            'log_' + str_now + '.txt',
+            make_dirs='parent'
         )
-        dump_path = os.path.normpath(dump_path)
-        dump_path = os.path.abspath(dump_path)
 
         text = [
             'エラーが発生しました。',
@@ -52,7 +52,6 @@ def excepthook(exc_type, exc_value, exc_tb):
         text = '\n'.join(text)
         print(text, file=sys.stderr)
 
-        os.makedirs(os.path.dirname(dump_path), exist_ok=True)
         with codecs.open(dump_path, 'w', 'utf-8') as f:
             f.write(text)
 

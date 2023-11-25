@@ -1,8 +1,11 @@
+from typing import Optional
+
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from common import FrameAction
+from res import resolve, Domain
 
 
 class FrameViewWidget(QWidget):
@@ -51,7 +54,7 @@ class FrameViewWidget(QWidget):
         layout_view.addStretch(1)
 
         view = QLabel('IMAGE', self)
-        view.setPixmap(QPixmap('res/bg.jpg'))
+        view.setPixmap(QPixmap(resolve(Domain.RESOURCES, 'bg.jpg')))
         layout_view.addWidget(view)
         self.__view = view
 
@@ -67,6 +70,7 @@ class FrameViewWidget(QWidget):
         def add_control_button(text_, act_, la_):
             b = QPushButton(text_, self)
             b.setFixedWidth(50)
+            # noinspection PyUnresolvedReferences
             b.clicked.connect(lambda *args: self.control_clicked.emit(act_))
             la_.addWidget(b)
 

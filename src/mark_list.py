@@ -3,7 +3,7 @@ import re
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from label_data_json import LabelDataJson
+from labels import LabelDataJson
 
 
 class MarkerListWidget(QWidget):
@@ -19,6 +19,7 @@ class MarkerListWidget(QWidget):
         self.setLayout(layout)
 
         lw = QListWidget(self)
+        # noinspection PyUnresolvedReferences
         lw.clicked.connect(lambda: self.__button_clicked('seek'))
         layout.addWidget(lw)
         self.__lw = lw

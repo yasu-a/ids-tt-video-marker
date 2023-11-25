@@ -1,10 +1,11 @@
 import webbrowser
-from typing import Optional
+from typing import Optional, Literal
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import labels.poring
 import version
 from common import DEBUG, FrameAction
 from frame import FrameViewWidget
@@ -110,18 +111,21 @@ class MainWidget(HorizontalSplitter):
         self.__video_seek(i_next)
 
     @pyqtSlot(int, str)
-    def perform_marker_action(self, n, marker_type):
+    def perform_marker_action(self, number: int, marker_type: Literal['label', 'tag']):
+        assert isinstance(number, int), number
+        assert marker_type in ['label', 'tag'], marker_type
+
         if self.__video is None:
             return
 
         i = self.__video.frame_index
         m: MarkerWidget = self.__w_marker
         if marker_type == 'label':
-            if n == 0:
+            if number == 0:
                 m.remove_marker(i)
             else:
                 m_current = m.get_marker(i)
-                m_request = self.__w_label.labels.index_to_label(n)
+                m_request = self.__w_label.labels.index_to_label(number - 1)
                 if m_current == m_request:
                     m.remove_marker(i)
                     m.update_view(i)
@@ -131,7 +135,7 @@ class MainWidget(HorizontalSplitter):
         elif marker_type == 'tag':
             ts_current = m.get_tags(i)
             m_current = m.get_marker(i)
-            t_request = self.__w_label.labels.index_to_tag(m_current, n)
+            t_request = self.__w_label.labels.index_to_tag(m_current, number)
             if t_request is not None:
                 if t_request in ts_current:
                     m.remove_tag(i, t_request)
@@ -234,7 +238,13 @@ class MainWidget(HorizontalSplitter):
         v.seek(0)
 
 
-class MainStatusBar(QStatusBar):
+# noinspection PyPep8Naming
+class MainStatusBarStubs:
+    def setStyleSheet(self, ss: str):
+        ...
+
+
+class MainStatusBar(MainStatusBarStubs, QStatusBar):
     clicked = pyqtSignal(str)
 
     def __init__(self, parent: QWidget = None):
@@ -252,17 +262,38 @@ class MainStatusBar(QStatusBar):
         self.clicked.emit(self.currentMessage())
 
 
-class MainWindow(QMainWindow):
+# noinspection PyPep8Naming
+class MainWindowStubs:
+    def setWindowTitle(self, title: str): ...
+
+    def setWindowFlag(self, flag: int): ...
+
+    def setStatusBar(self, sb: QStatusBar): ...
+
+    def setCentralWidget(self, w: QWidget): ...
+
+    def centralWidget(self) -> MainWidget: ...
+
+    def setStyleSheet(self, ss: str): ...
+
+    def menuBar(self) -> QMenuBar: ...
+
+    def statusBar(self) -> MainStatusBar: ...
+
+    def show(self): ...
+
+    def windowTitle(self) -> str: ...
+
+
+class MainWindow(QMainWindow, MainWindowStubs):
     file_dropped = pyqtSignal(str)
     key_entered = pyqtSignal(QKeyEvent)
 
     def __init__(self):
         super().__init__()
 
-        self.setStatusBar(MainStatusBar(self))
-
-        self.setCentralWidget(MainWidget(self))
-        QApplication.instance().installEventFilter(self)
+        self.__init_ui()
+        self.__init_menu_bar()
 
         self.setGeometry(0, 0, 600, 600)
         self.setWindowTitle(f'Vosaic? {version.app_version_str}')
@@ -272,8 +303,154 @@ class MainWindow(QMainWindow):
 
         self.__init_signals()
 
+    def __init_ui(self):
+        self.setStatusBar(MainStatusBar(self))
+
+        self.setCentralWidget(MainWidget(self))
+        QApplication.instance().installEventFilter(self)
+
+    def __menu_action_file_open_video(self):
+        # noinspection PyTypeChecker
+        video_path, check = QFileDialog.getOpenFileName(
+            self,
+            '動画ファイルを選択',
+            '',
+            '動画ファイル (*.mp4)'
+        )
+
+        if not check:
+            return
+
+        w = self.centralWidget()
+        assert isinstance(w, MainWidget), type(w)
+        w.update_path(video_path)
+
+    def __menu_action_label_export(self):
+        # noinspection PyTypeChecker
+        zip_folder_path = QFileDialog.getExistingDirectory(
+            self,
+            "データのzipファイルを書き出すフォルダを選択"
+        ).strip()
+
+        if not zip_folder_path:
+            return
+
+        result = labels.poring.export_all(zip_folder_path)
+        if not result:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Question)
+            msg.setText('エクスポートしたzipファイルが既に存在します。上書きしますか？')
+            msg.setInformativeText(zip_folder_path)
+            msg.setWindowTitle(self.windowTitle())
+            msg.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
+            msg.setDefaultButton(QMessageBox.No)
+            msg_result = msg.exec()
+            if msg_result == QMessageBox.No:
+                return
+
+            result = labels.poring.export_all(zip_folder_path, exists_ok=True)
+            assert result, result
+
+        print('Exported!')
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('次のフォルダにラベルデータをエクスポートしてzipファイルを生成しました')
+        msg.setInformativeText(zip_folder_path)
+        msg.setWindowTitle(self.windowTitle())
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
+
+    def __menu_action_label_import(self):
+        # noinspection PyTypeChecker
+        zip_path, check = QFileDialog.getOpenFileName(
+            self,
+            'エクスポートしたzipファイルを選択',
+            '',
+            'zipファイル (*.zip)'
+        )
+
+        if not check:
+            return
+
+        canceled = labels.poring.import_all(zip_path)
+        print('canceled =', canceled)
+
+        if canceled is None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText('zipファイルをインポートできませんでした')
+            msg.setInformativeText(
+                'zipファイルが想定外の構造を含んでいます。これは本当にエクスポートしたzipファイルですか？\n'
+                f'{zip_path}'
+            )
+            msg.setWindowTitle(self.windowTitle())
+            msg.setStandardButtons(QMessageBox.Cancel)
+            msg.exec()
+            return
+
+        print('Imported!')
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        if canceled:
+            msg.setText(
+                'インポートが完了しましたが、'
+                'markdataにすでに存在する次のファイルがインポートされませんでした。\n'
+                '強制的に上書きする場合はmarkdataフォルダの対象のファイルを手動で削除してください。'
+            )
+        else:
+            msg.setText('インポートが完了しました')
+        msg.setInformativeText('\n'.join(canceled))
+        msg.setWindowTitle(self.windowTitle())
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
+
+    # noinspection PyArgumentList
+    def __init_menu_bar(self):
+        mb = self.menuBar()
+
+        menu = mb.addMenu('&File')
+
+        menu.addAction(
+            QAction(
+                '&Open Video',
+                self,
+                triggered=self.__menu_action_file_open_video
+            )
+        )
+
+        menu.addSeparator()
+
+        menu.addAction(
+            QAction(
+                '&Exit',
+                self,
+                triggered=QApplication.quit
+            )
+        )
+
+        menu = mb.addMenu('&Label')
+
+        menu.addAction(
+            QAction(
+                '&Export',
+                self,
+                triggered=self.__menu_action_label_export
+            )
+        )
+
+        menu.addAction(
+            QAction(
+                '&Import',
+                self,
+                triggered=self.__menu_action_label_import
+            )
+        )
+
     def __init_signals(self):
-        w: MainWidget = self.centralWidget()
+        w = self.centralWidget()
+        assert isinstance(w, MainWidget), type(w)
         self.file_dropped.connect(w.update_path)
         self.key_entered.connect(w.perform_key)
 
@@ -338,10 +515,11 @@ class MainWindow(QMainWindow):
             webbrowser.open(version.latest_version_info['url'])
 
     # noinspection PyPep8Naming
-    def showEvent(self, evt):
+    def showEvent(self, _):
         self.__load_mp4_for_debug()
 
-        sb: MainStatusBar = self.statusBar()
+        sb = self.statusBar()
+        assert isinstance(sb, MainStatusBar), type(sb)
 
         if version.update_available:
             sb.clicked.connect(self.__statusbar_clicked)

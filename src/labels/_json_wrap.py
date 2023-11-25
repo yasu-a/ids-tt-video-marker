@@ -1,30 +1,14 @@
 import codecs
 import json
 import os.path
-import zipfile
 from typing import Optional, Union
 
 import numpy as np
 from PyQt5.QtCore import QMutex
 
-import label_data_json_compat as compat
-import machine
-
-MARKDATA_PATH = './markdata'
-
-
-def export_all(dst_path):
-    os.makedirs(dst_path, exist_ok=True)
-
-    zf_path = os.path.join(dst_path, f'iDSTTVideoMarkerData_{machine.platform_hash_digest}.zip')
-
-    with zipfile.ZipFile(zf_path, 'w') as zf:
-        for json_name in os.listdir(MARKDATA_PATH):
-            json_path = os.path.join(MARKDATA_PATH, json_name)
-            with codecs.open(json_path, 'rb') as f_json:
-                with zf.open(json_name, 'w') as f_zipped_file:
-                    # noinspection PyTypeChecker
-                    f_zipped_file.write(f_json.read())
+from res import resolve, Domain
+from . import _backup as backup
+from . import _json_compat as compat
 
 
 # When upgrade version, make sure you ...
@@ -54,15 +38,17 @@ class LabelDataJson:
 
     @property
     def json_path(self):
-        return os.path.join(
-            MARKDATA_PATH,
-            f'{self.__video_name}.json'
+        return resolve(
+            Domain.MARKDATA,
+            f'{self.__video_name}.json',
+            make_dirs='parent'
         )
 
     def __load_json(self):
         if os.path.exists(self.json_path):
             with codecs.open(self.json_path, 'r', encoding='utf-8') as f:
                 json_root = json.load(f)
+            backup.take(self.json_path, json_root)
             json_root = compat.convert(
                 json_path=self.json_path,
                 json_root=json_root
@@ -82,8 +68,6 @@ class LabelDataJson:
         if self.__json_root is None:
             return
 
-        json_dir_path = os.path.dirname(self.json_path)
-        os.makedirs(json_dir_path, exist_ok=True)
         with codecs.open(self.json_path, 'w', encoding='utf-8') as f:
             json.dump(self.__json_root, f, indent=2, sort_keys=True, ensure_ascii=False)
 

@@ -6,57 +6,60 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from label_data_json import LabelDataJson
+from labels import LabelDataJson
+from res import resolve, Domain
 
 
 class LabelDataFormatError(RuntimeError):
     pass
 
 
-class LabelData:
-    ROOT_DIR = './labels'
+class LabelTemplate:
+    ROOT_DIR = resolve(Domain.TEMPLATE)
 
-    def __init__(self, data):
-        self.__data = data
+    def __init__(self, json_root):
+        self.__json_root = json_root
 
     @classmethod
-    def from_name(cls, name):
-        path = os.path.join(cls.ROOT_DIR, name + '.json')
+    def from_template_name(cls, template_name):
+        path = os.path.join(cls.ROOT_DIR, template_name + '.json')
         with open(path, 'r') as f:
-            data = json.load(f)
+            json_root = json.load(f)
 
-        return cls(data)
+        return cls(json_root)
 
         # TODO: format check
         # dct = {}
-        # for k, v in data.items():
+        # for k, v in json_root.items():
         #     if not re.fullmatch(r'[0-9]', k):
         #         raise LabelDataFormatError('keys of the root node must be a digit')
         #     if not isinstance(v):
 
     def iter_labels(self):
-        for index, data in self.__data.items():
-            name, tags = data['name'], data['tags']
-            yield index, name, tags
+        for i, entry in enumerate(self.__json_root):
+            name, tags = entry['name'], entry['tags']
+            yield i, name, tags
 
     def index_to_label(self, i):
-        return (self.__data.get(str(i)) or {}).get('name')
+        try:
+            return self.__json_root[i]['name']
+        except IndexError:
+            return None
 
-    def label_to_data(self, label_name):
-        for k, v in self.__data.items():
-            if v['name'] == label_name:
-                return v
+    def get_entry_by_label_name(self, label_name):
+        for entry in self.__json_root:
+            if entry['name'] == label_name:
+                return entry
         return None
 
     def index_to_tag(self, label_name, i):
-        data = self.label_to_data(label_name)
-        if data is None:
+        entry = self.get_entry_by_label_name(label_name)
+        if entry is None:
             return None
         try:
-            tag = data['tags'][i]
+            return entry['tags'][i]
         except IndexError:
             return None
-        return tag
 
     @classmethod
     def list_names(cls):
@@ -86,6 +89,7 @@ class LabelWidget(QWidget):
         self.setLayout(layout)
 
         combo_files = QComboBox(self)
+        # noinspection PyUnresolvedReferences
         combo_files.currentIndexChanged.connect(self.__update_file_selection)
         layout.addWidget(combo_files)
         self.__combo_files = combo_files
@@ -97,7 +101,7 @@ class LabelWidget(QWidget):
     @pyqtSlot(int)
     def load_files(self):
         self.__combo_files.clear()
-        for name in LabelData.list_names():
+        for name in LabelTemplate.list_names():
             self.__combo_files.addItem(name)
 
     def __update_w_labels(self):
@@ -154,7 +158,7 @@ class LabelWidget(QWidget):
     @pyqtSlot(int)
     def __update_file_selection(self, i):
         name = self.__combo_files.itemText(i)
-        self.__labels = LabelData.from_name(name)
+        self.__labels = LabelTemplate.from_template_name(name)
         self.__update_w_labels()
 
 
@@ -164,7 +168,7 @@ class MarkerWidget(QWidget):
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
 
-        self.__output_dir_path = './markdata'
+        self.__output_dir_path = resolve(Domain.MARKDATA)
         self.__json_path = None
 
         self.__data: Optional[LabelDataJson] = None
@@ -231,7 +235,8 @@ class MarkerWidget(QWidget):
                          range(current_frame_index - n_side, current_frame_index + n_side + 1)]
 
         dct = {}
-        for fi in frame_indexes:
+        # overwrite `current_frame_index` to show central item on top
+        for fi in (*frame_indexes, current_frame_index):
             marker = self.get_marker(fi)
             if marker is not None:
                 tags = self.get_tags(fi)

@@ -1,3 +1,3 @@
-cd /D "%~dp0"
 pip install -r ./requirements.txt
+cd ./src
 python run.py disable_debug
