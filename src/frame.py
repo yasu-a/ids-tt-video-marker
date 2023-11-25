@@ -70,6 +70,7 @@ class FrameViewWidget(QWidget):
         def add_control_button(text_, act_, la_):
             b = QPushButton(text_, self)
             b.setFixedWidth(50)
+            # noinspection PyUnresolvedReferences
             b.clicked.connect(lambda *args: self.control_clicked.emit(act_))
             la_.addWidget(b)
 

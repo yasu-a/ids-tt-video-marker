@@ -237,7 +237,13 @@ class MainWidget(HorizontalSplitter):
         v.seek(0)
 
 
-class MainStatusBar(QStatusBar):
+# noinspection PyPep8Naming
+class MainStatusBarStubs:
+    def setStyleSheet(self, ss: str):
+        ...
+
+
+class MainStatusBar(MainStatusBarStubs, QStatusBar):
     clicked = pyqtSignal(str)
 
     def __init__(self, parent: QWidget = None):
@@ -255,7 +261,28 @@ class MainStatusBar(QStatusBar):
         self.clicked.emit(self.currentMessage())
 
 
-class MainWindow(QMainWindow):
+# noinspection PyPep8Naming
+class MainWindowStubs:
+    def setWindowTitle(self, title: str): ...
+
+    def setWindowFlag(self, flag: int): ...
+
+    def setStatusBar(self, sb: QStatusBar): ...
+
+    def setCentralWidget(self, w: QWidget): ...
+
+    def centralWidget(self) -> MainWidget: ...
+
+    def setStyleSheet(self, ss: str): ...
+
+    def menuBar(self) -> QMenuBar: ...
+
+    def statusBar(self) -> MainStatusBar: ...
+
+    def show(self): ...
+
+
+class MainWindow(QMainWindow, MainWindowStubs):
     file_dropped = pyqtSignal(str)
     key_entered = pyqtSignal(QKeyEvent)
 
@@ -280,6 +307,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().installEventFilter(self)
 
     def __menu_action_file_open_video(self):
+        # noinspection PyTypeChecker
         video_path, check = QFileDialog.getOpenFileName(
             self,
             '動画ファイルを選択してください',
@@ -290,7 +318,6 @@ class MainWindow(QMainWindow):
         if not check:
             return
 
-        # noinspection PyTypeChecker
         w: MainWidget = self.centralWidget()
         w.update_path(video_path)
 
@@ -335,7 +362,6 @@ class MainWindow(QMainWindow):
         )
 
     def __init_signals(self):
-        # noinspection PyTypeChecker
         w: MainWidget = self.centralWidget()
         self.file_dropped.connect(w.update_path)
         self.key_entered.connect(w.perform_key)
@@ -401,10 +427,9 @@ class MainWindow(QMainWindow):
             webbrowser.open(version.latest_version_info['url'])
 
     # noinspection PyPep8Naming
-    def showEvent(self, evt):
+    def showEvent(self, _):
         self.__load_mp4_for_debug()
 
-        # noinspection PyTypeChecker
         sb: MainStatusBar = self.statusBar()
 
         if version.update_available:

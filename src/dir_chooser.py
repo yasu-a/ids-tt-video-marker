@@ -25,6 +25,7 @@ class DirectoryChooserWidget(QWidget):
         self.__textline = line_edit
 
         button_select_sd = QPushButton('...', self)
+        # noinspection PyUnresolvedReferences
         button_select_sd.clicked.connect(self.button_clicked)
         layout.addWidget(button_select_sd)
 

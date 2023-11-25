@@ -19,6 +19,7 @@ class MarkerListWidget(QWidget):
         self.setLayout(layout)
 
         lw = QListWidget(self)
+        # noinspection PyUnresolvedReferences
         lw.clicked.connect(lambda: self.__button_clicked('seek'))
         layout.addWidget(lw)
         self.__lw = lw

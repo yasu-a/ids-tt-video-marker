@@ -89,6 +89,7 @@ class LabelWidget(QWidget):
         self.setLayout(layout)
 
         combo_files = QComboBox(self)
+        # noinspection PyUnresolvedReferences
         combo_files.currentIndexChanged.connect(self.__update_file_selection)
         layout.addWidget(combo_files)
         self.__combo_files = combo_files

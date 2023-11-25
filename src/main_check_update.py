@@ -31,6 +31,7 @@ class MainWidget(QWidget):
         self.setLayout(layout)
 
         button = QPushButton(self)
+        # noinspection PyUnresolvedReferences
         button.clicked.connect(self.button_clicked)
         layout.addWidget(button)
         self.button = button
@@ -60,5 +61,6 @@ if __name__ == '__main__':
     else:
         app.setStyleSheet("*{font-size: 11pt; font-family: Courier;}")
     ew = MainWidget()
+    # noinspection PyUnresolvedReferences
     ew.show()
     sys.exit(app.exec_())
