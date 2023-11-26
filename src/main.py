@@ -549,8 +549,8 @@ class MainWindow(QMainWindow, MainWindowStubs):
         elif version.update_available:
             sb.clicked.connect(self.__statusbar_clicked)
             sb.showMessage(
-                f'アップデートが利用可能です（{version.app_version_str}->{version.latest_version}）'
-                f'ここをクリックするとGitHubが開くので　Code -> Download ZIP から最新版をダウンロードしてmarkdataを移行してください。',
+                f'アップデートが利用可能です（ver {version.app_version_str}->ver {version.latest_version}）'
+                f'ここをクリックするとGitHubが開くので　Code -> Download ZIP から最新版をダウンロードしてmarkdataを移行してください',
                 color='cyan',
                 font_weight='bold'
             )
