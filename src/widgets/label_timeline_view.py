@@ -38,6 +38,7 @@ class LabelTimelineWidget(QWidget):
         self.setLayout(layout)
 
         cb_wide = QCheckBox('Wide', self)
+        # noinspection PyUnresolvedReferences
         cb_wide.stateChanged.connect(self.__wide_changed)
         layout.addWidget(cb_wide)
         self.__cb_wide = cb_wide
@@ -52,6 +53,7 @@ class LabelTimelineWidget(QWidget):
         layout.addWidget(label_tl)
         self.__l_timeline = label_tl
 
+    # noinspection PyArgumentList
     @pyqtSlot(int)
     def __wide_changed(self, state: int):
         self.__n_side_wide = bool(state)
@@ -113,6 +115,7 @@ class LabelTimelineWidget(QWidget):
         with self.__data as accessor:
             return accessor.find_nearest_labeled_index(fi, direction, n)
 
+    # noinspection PyArgumentList
     def update_view(self, current_frame_index=None):
         if current_frame_index is None:
             current_frame_index = self.__prev_frame_index

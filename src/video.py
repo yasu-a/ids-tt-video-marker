@@ -8,7 +8,9 @@ from cache import lru_cache
 
 
 class Video(QObject):
+    # noinspection PyArgumentList
     seek_requested = pyqtSignal(int, int)  # i_current, i_next
+    # noinspection PyArgumentList
     seek_finished = pyqtSignal(QImage, int, float)  # img, idx, ts
 
     def __init__(self, parent: QObject, path):
