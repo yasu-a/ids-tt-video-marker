@@ -255,7 +255,7 @@ class MainStatusBar(MainStatusBarStubs, QStatusBar):
         font_weight = font_weight or 'normal'
 
         super().showMessage('')
-        self.setStyleSheet(f'background-color : {color}; font-weight: {font_weight};')
+        self.setStyleSheet(f'background-color: {color}; font-weight: {font_weight};')
         super().showMessage(message)
 
     def mousePressEvent(self, evt):
@@ -521,11 +521,17 @@ class MainWindow(QMainWindow, MainWindowStubs):
         sb = self.statusBar()
         assert isinstance(sb, MainStatusBar), type(sb)
 
-        if version.update_available:
+        if version.update_available is None:
+            sb.showMessage(
+                f'アップデートを確認していません',
+                color='pink',
+                font_weight='bold'
+            )
+        elif version.update_available:
             sb.clicked.connect(self.__statusbar_clicked)
             sb.showMessage(
                 f'アップデートが利用可能です（{version.app_version_str}->{version.latest_version}）'
                 f'ここをクリックするとGitHubが開くので　Code -> Download ZIP から最新版をダウンロードしてmarkdataを移行してください。',
-                color='pink',
+                color='cyan',
                 font_weight='bold'
             )
