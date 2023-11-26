@@ -289,6 +289,9 @@ class MarkerWidget(QWidget):
 
         self.__label_names = []
         self.__l_streams = []
+        self.__n_side_wide = False
+
+        self.__prev_frame_index = None
 
         self.__init_ui()
 
@@ -296,6 +299,11 @@ class MarkerWidget(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(0)
         self.setLayout(layout)
+
+        cb_wide = QCheckBox('Wide', self)
+        cb_wide.stateChanged.connect(self.__wide_changed)
+        layout.addWidget(cb_wide)
+        self.__cb_wide = cb_wide
 
         label_cursor = LayeredTUILabel('C', self)
         label_cursor.setAlignment(Qt.AlignCenter)
@@ -307,11 +315,17 @@ class MarkerWidget(QWidget):
         layout.addWidget(label_tl)
         self.__l_timeline = label_tl
 
+    @pyqtSlot(int)
+    def __wide_changed(self, state: int):
+        self.__n_side_wide = bool(state)
+        self.update_view()
+
     # noinspection PyArgumentList
     @pyqtSlot(LabelTemplate)
     def update_template(self, template: LabelTemplate):
         self.__label_names = [name for i, name, tags in template.iter_labels()]
         self.__update_stream_count(len(self.__label_names))
+        self.update_view()
 
     def __update_stream_count(self, n):
         if len(self.__l_streams) == n:
@@ -362,8 +376,14 @@ class MarkerWidget(QWidget):
         with self.__data as accessor:
             return accessor.find_nearest_labeled_index(fi, direction, n)
 
-    def update_view(self, current_frame_index):
-        n_side = 75
+    def update_view(self, current_frame_index=None):
+        if current_frame_index is None:
+            current_frame_index = self.__prev_frame_index
+        self.__prev_frame_index = current_frame_index
+        if current_frame_index is None:
+            return False
+
+        n_side = 80 if self.__n_side_wide else 55
         frame_indexes = np.array([
             fi for fi in range(
                 current_frame_index - n_side,
@@ -409,6 +429,8 @@ class MarkerWidget(QWidget):
         self.__l_cursor.tui_commit()
 
         self.view_updated.emit(self.__data)
+
+        return True
 
     # noinspection PyUnusedLocal, PyArgumentList
     @pyqtSlot(str, float, int)
