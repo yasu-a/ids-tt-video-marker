@@ -10,7 +10,7 @@ import version
 from common import DEBUG, FrameAction
 from frame import FrameViewWidget
 from mark_list import MarkerListWidget
-from marker import MarkerWidget, LabelWidget
+from marker import MarkerWidget, LabelTemplateWidget
 from video import Video
 
 
@@ -61,10 +61,9 @@ class MainWidget(HorizontalSplitter):
         # b_debug.clicked.connect(lambda: print(self.find_widget('sd_chooser')))
         # layout.addWidget(b_debug)
 
-        w_label = LabelWidget(self)
-        w_label.load_files()
-        self.right.addWidget(w_label)
-        self.__w_label = w_label
+        w_label_template = LabelTemplateWidget(self)
+        self.right.addWidget(w_label_template)
+        self.__w_label_template = w_label_template
 
         # marker list
         self.__w_marker_list = MarkerListWidget(self)
@@ -85,9 +84,10 @@ class MainWidget(HorizontalSplitter):
 
     def __init_signals(self):
         self.__w_frame.control_clicked.connect(self.perform_frame_action)
-        self.__w_label.control_clicked.connect(self.perform_marker_action)
+        self.__w_label_template.control_clicked.connect(self.perform_marker_action)
         self.__w_marker.view_updated.connect(self.__w_marker_list.update_view)
         self.__w_marker_list.seek_requested.connect(self.__video_seek)
+        self.__w_label_template.template_changed.connect(self.__w_marker.update_template)
 
     @pyqtSlot(int)
     def __video_seek(self, i):
@@ -125,7 +125,7 @@ class MainWidget(HorizontalSplitter):
                 m.remove_marker(i)
             else:
                 m_current = m.get_marker(i)
-                m_request = self.__w_label.labels.index_to_label(number - 1)
+                m_request = self.__w_label_template.labels.get_label_name_by_index(number - 1)
                 if m_current == m_request:
                     m.remove_marker(i)
                     m.update_view(i)
@@ -135,7 +135,7 @@ class MainWidget(HorizontalSplitter):
         elif marker_type == 'tag':
             ts_current = m.get_tags(i)
             m_current = m.get_marker(i)
-            t_request = self.__w_label.labels.index_to_tag(m_current, number)
+            t_request = self.__w_label_template.labels.get_tag_by_index(m_current, number)
             if t_request is not None:
                 if t_request in ts_current:
                     m.remove_tag(i, t_request)
@@ -236,6 +236,10 @@ class MainWidget(HorizontalSplitter):
         v = Video(self, path)
         self.__set_video_instance(v)
         v.seek(0)
+
+    @pyqtSlot()
+    def update_label_templates(self):
+        self.__w_label_template.load_files()
 
 
 # noinspection PyPep8Naming
@@ -516,6 +520,8 @@ class MainWindow(QMainWindow, MainWindowStubs):
 
     # noinspection PyPep8Naming
     def showEvent(self, _):
+        self.centralWidget().update_label_templates()
+
         self.__load_mp4_for_debug()
 
         sb = self.statusBar()
