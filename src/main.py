@@ -5,13 +5,14 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import labels.poring
+import labels.porting
 import version
 from common import DEBUG, FrameAction
-from frame import FrameViewWidget
-from mark_list import MarkerListWidget
-from marker import MarkerWidget, LabelTemplateWidget
 from video import Video
+from widgets.frame_image_view import FrameViewWidget
+from widgets.label_template_view import LabelTemplateWidget
+from widgets.label_timeline_view import LabelTimelineWidget
+from widgets.labeled_frame_list_view import LabeledFrameListWidget
 
 
 class HorizontalSplitter(QSplitter):
@@ -66,7 +67,7 @@ class MainWidget(HorizontalSplitter):
         self.__w_label_template = w_label_template
 
         # marker list
-        self.__w_marker_list = MarkerListWidget(self)
+        self.__w_marker_list = LabeledFrameListWidget(self)
         self.__w_marker_list.setMinimumWidth(350)
         self.right.addWidget(self.__w_marker_list)
 
@@ -77,7 +78,7 @@ class MainWidget(HorizontalSplitter):
         self.left.addWidget(self.__w_frame)
 
         # marker viewer
-        self.__w_marker = MarkerWidget(self)
+        self.__w_marker = LabelTimelineWidget(self)
         self.left.addWidget(self.__w_marker)
 
         self.left.addStretch(1)
@@ -119,7 +120,7 @@ class MainWidget(HorizontalSplitter):
             return
 
         i = self.__video.frame_index
-        m: MarkerWidget = self.__w_marker
+        m: LabelTimelineWidget = self.__w_marker
         if marker_type == 'label':
             if number == 0:
                 m.remove_marker(i)
@@ -339,7 +340,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         if not zip_folder_path:
             return
 
-        result = labels.poring.export_all(zip_folder_path)
+        result = labels.porting.export_all(zip_folder_path)
         if not result:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Question)
@@ -352,7 +353,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
             if msg_result == QMessageBox.No:
                 return
 
-            result = labels.poring.export_all(zip_folder_path, exists_ok=True)
+            result = labels.porting.export_all(zip_folder_path, exists_ok=True)
             assert result, result
 
         print('Exported!')
@@ -377,7 +378,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         if not check:
             return
 
-        canceled = labels.poring.import_all(zip_path)
+        canceled = labels.porting.import_all(zip_path)
         print('canceled =', canceled)
 
         if canceled is None:
