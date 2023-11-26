@@ -90,12 +90,14 @@ class MainWidget(HorizontalSplitter):
         self.__w_marker_list.seek_requested.connect(self.__video_seek)
         self.__w_label_template.template_changed.connect(self.__w_marker.update_template)
 
+    # noinspection PyArgumentList
     @pyqtSlot(int)
     def __video_seek(self, i):
         if self.__video is None:
             return
         self.__video.seek(i)
 
+    # noinspection PyArgumentList
     @pyqtSlot(FrameAction)
     def perform_frame_action(self, act: FrameAction):
         if self.__video is None:
@@ -111,6 +113,7 @@ class MainWidget(HorizontalSplitter):
 
         self.__video_seek(i_next)
 
+    # noinspection PyArgumentList
     @pyqtSlot(int, str)
     def perform_marker_action(self, number: int, marker_type: Literal['label', 'tag']):
         assert isinstance(number, int), number
@@ -177,6 +180,7 @@ class MainWidget(HorizontalSplitter):
         (Qt.NoModifier, Qt.Key_Right): FrameAction.NEXT_PAGE
     }
 
+    # noinspection PyArgumentList
     @pyqtSlot(QKeyEvent)
     def perform_key(self, e):
         key = e.key()
@@ -201,7 +205,7 @@ class MainWidget(HorizontalSplitter):
                 self.perform_frame_action(act)
                 return
 
-    # noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal,PyArgumentList
     @pyqtSlot(QImage, int, float)
     def __notice_cache(self, img, idx, ts):
         marker_cache = [
@@ -231,13 +235,16 @@ class MainWidget(HorizontalSplitter):
             v.release()
             v.deleteLater()
 
+    # noinspection PyArgumentList
     @pyqtSlot(str)
     def update_path(self, path):
         self.__remove_video_instance_if_exists()
+        # noinspection PyTypeChecker
         v = Video(self, path)
         self.__set_video_instance(v)
         v.seek(0)
 
+    # noinspection PyArgumentList
     @pyqtSlot()
     def update_label_templates(self):
         self.__w_label_template.load_files()
@@ -250,6 +257,7 @@ class MainStatusBarStubs:
 
 
 class MainStatusBar(MainStatusBarStubs, QStatusBar):
+    # noinspection PyArgumentList
     clicked = pyqtSignal(str)
 
     def __init__(self, parent: QWidget = None):
@@ -291,7 +299,9 @@ class MainWindowStubs:
 
 
 class MainWindow(QMainWindow, MainWindowStubs):
+    # noinspection PyArgumentList
     file_dropped = pyqtSignal(str)
+    # noinspection PyArgumentList
     key_entered = pyqtSignal(QKeyEvent)
 
     def __init__(self):
@@ -514,6 +524,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
                 return True
         return super().eventFilter(source, event)
 
+    # noinspection PyArgumentList
     @pyqtSlot(str)
     def __statusbar_clicked(self, msg):
         if msg.startswith('アップデートが利用可能です'):
@@ -521,6 +532,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
 
     # noinspection PyPep8Naming
     def showEvent(self, _):
+        # noinspection PyUnresolvedReferences
         self.centralWidget().update_label_templates()
 
         self.__load_mp4_for_debug()

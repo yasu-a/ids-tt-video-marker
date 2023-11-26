@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 
 
 class DirectoryChooserWidget(QWidget):
+    # noinspection PyArgumentList
     changed = pyqtSignal()
 
     def __init__(self, parent: QWidget, title, default_path):

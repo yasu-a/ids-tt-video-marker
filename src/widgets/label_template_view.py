@@ -55,7 +55,7 @@ class LabelTemplateWidget(QWidget):
             # noinspection PyArgumentList
             b_name = QPushButton(
                 parent=self,
-                text=f'{name} [{index}]',
+                text=f'{name} [{index + 1}]',
                 clicked=self.on_control_clicked,
                 objectName=f'{index},-1'
             )
@@ -90,8 +90,10 @@ class LabelTemplateWidget(QWidget):
         a, b = map(int, self.sender().objectName().split(','))
         a += 1
         if b < 0:
+            # noinspection PyUnresolvedReferences
             self.control_clicked.emit(a, 'label')
         else:
+            # noinspection PyUnresolvedReferences
             self.control_clicked.emit(b, 'tag')
 
     # noinspection PyArgumentList
@@ -100,4 +102,5 @@ class LabelTemplateWidget(QWidget):
         name = self.__combo_files.itemText(i)
         self.__labels = LabelTemplate.from_template_name(name)
         self.__update_w_labels()
+        # noinspection PyUnresolvedReferences
         self.template_changed.emit(self.__labels)

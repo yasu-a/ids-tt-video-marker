@@ -84,8 +84,9 @@ class RichText(NamedTuple):
 
     @classmethod
     def array_to_html(cls, rts: list['RichText']):
-        ha = np.array([rt.__decoration_hash() for rt in rts])
-        ha_change = ha[1:] != ha[:-1]
+        ha: np.ndarray = np.array([rt.__decoration_hash() for rt in rts])
+        # noinspection PyTypeChecker
+        ha_change: np.ndarray = ha[1:] != ha[:-1]
 
         lst = []
         for i in range(len(rts)):

@@ -25,8 +25,8 @@ def retrieve_branches_json():
     cache_path = resolve(Domain.APPINFO, 'branches_cache.json', make_dirs='parent')
     cache = None
     if os.path.exists(cache_path):
-        with codecs.open(cache_path, 'r', encoding='utf-8') as f:
-            cache_raw = json.load(f)
+        with codecs.open(cache_path, 'r', encoding='utf-8') as f_:
+            cache_raw = json.load(f_)
             timestamp = datetime.datetime.fromtimestamp(cache_raw['timestamp'])
             if datetime.datetime.now() - timestamp <= _RETRIEVE_TIME_SPAN:
                 cache = cache_raw['main']
@@ -38,13 +38,13 @@ def retrieve_branches_json():
     print(f'urllib.request.urlopen({_GITHUB_VERSIONS_URL})')
     with urllib.request.urlopen(_GITHUB_VERSIONS_URL) as res:
         branches_json = json.loads(res.read())
-    with codecs.open(cache_path, 'w', encoding='utf-8') as f:
+    with codecs.open(cache_path, 'w', encoding='utf-8') as f_:
         json.dump(
             dict(
                 timestamp=int(time.time()),
                 main=branches_json
             ),
-            f
+            f_
         )
     print('Retrieved branches from github')
     return branches_json
