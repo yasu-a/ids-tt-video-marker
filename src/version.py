@@ -9,7 +9,7 @@ from pprint import pprint
 
 from res import resolve, Domain
 
-CHECK_UPDATE = False
+CHECK_UPDATE = True
 
 _APP_INFO_JSON_PATH = resolve(Domain.APPINFO, 'appinfo.json', make_dirs='parent')
 _GITHUB_VERSIONS_URL = 'https://api.github.com/repos/yasu-a/ids-tt-video-marker/branches'
