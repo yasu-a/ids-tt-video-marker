@@ -197,7 +197,6 @@ class LabelDataJson:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
             if self.__current_accessor.modified:
-                print('DUMP!')
                 self.dump()
         self.__lock.unlock()
         return False

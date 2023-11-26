@@ -1,12 +1,12 @@
 import re
 
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QHBoxLayout
 
 from labels import LabelDataJson
 
 
-class MarkerListWidget(QWidget):
+class LabeledFrameListWidget(QWidget):
     seek_requested = pyqtSignal(int)
 
     def __init__(self, parent: QObject = None):
@@ -38,6 +38,7 @@ class MarkerListWidget(QWidget):
             if len(items) == 0:
                 return
             i = int(re.match(r'\s*(\d+)', items[0].text())[1])
+            # noinspection PyUnresolvedReferences
             self.seek_requested.emit(i)
 
     @pyqtSlot(LabelDataJson)

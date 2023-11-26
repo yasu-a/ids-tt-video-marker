@@ -5,13 +5,14 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import labels.poring
+import labels.porting
 import version
 from common import DEBUG, FrameAction
-from frame import FrameViewWidget
-from mark_list import MarkerListWidget
-from marker import MarkerWidget, LabelWidget
 from video import Video
+from widgets.frame_image_view import FrameViewWidget
+from widgets.label_template_view import LabelTemplateWidget
+from widgets.label_timeline_view import LabelTimelineWidget
+from widgets.labeled_frame_list_view import LabeledFrameListWidget
 
 
 class HorizontalSplitter(QSplitter):
@@ -61,13 +62,12 @@ class MainWidget(HorizontalSplitter):
         # b_debug.clicked.connect(lambda: print(self.find_widget('sd_chooser')))
         # layout.addWidget(b_debug)
 
-        w_label = LabelWidget(self)
-        w_label.load_files()
-        self.right.addWidget(w_label)
-        self.__w_label = w_label
+        w_label_template = LabelTemplateWidget(self)
+        self.right.addWidget(w_label_template)
+        self.__w_label_template = w_label_template
 
         # marker list
-        self.__w_marker_list = MarkerListWidget(self)
+        self.__w_marker_list = LabeledFrameListWidget(self)
         self.__w_marker_list.setMinimumWidth(350)
         self.right.addWidget(self.__w_marker_list)
 
@@ -78,23 +78,26 @@ class MainWidget(HorizontalSplitter):
         self.left.addWidget(self.__w_frame)
 
         # marker viewer
-        self.__w_marker = MarkerWidget(self)
+        self.__w_marker = LabelTimelineWidget(self)
         self.left.addWidget(self.__w_marker)
 
         self.left.addStretch(1)
 
     def __init_signals(self):
         self.__w_frame.control_clicked.connect(self.perform_frame_action)
-        self.__w_label.control_clicked.connect(self.perform_marker_action)
+        self.__w_label_template.control_clicked.connect(self.perform_marker_action)
         self.__w_marker.view_updated.connect(self.__w_marker_list.update_view)
         self.__w_marker_list.seek_requested.connect(self.__video_seek)
+        self.__w_label_template.template_changed.connect(self.__w_marker.update_template)
 
+    # noinspection PyArgumentList
     @pyqtSlot(int)
     def __video_seek(self, i):
         if self.__video is None:
             return
         self.__video.seek(i)
 
+    # noinspection PyArgumentList
     @pyqtSlot(FrameAction)
     def perform_frame_action(self, act: FrameAction):
         if self.__video is None:
@@ -110,6 +113,7 @@ class MainWidget(HorizontalSplitter):
 
         self.__video_seek(i_next)
 
+    # noinspection PyArgumentList
     @pyqtSlot(int, str)
     def perform_marker_action(self, number: int, marker_type: Literal['label', 'tag']):
         assert isinstance(number, int), number
@@ -119,13 +123,13 @@ class MainWidget(HorizontalSplitter):
             return
 
         i = self.__video.frame_index
-        m: MarkerWidget = self.__w_marker
+        m: LabelTimelineWidget = self.__w_marker
         if marker_type == 'label':
             if number == 0:
                 m.remove_marker(i)
             else:
                 m_current = m.get_marker(i)
-                m_request = self.__w_label.labels.index_to_label(number - 1)
+                m_request = self.__w_label_template.labels.get_label_name_by_index(number - 1)
                 if m_current == m_request:
                     m.remove_marker(i)
                     m.update_view(i)
@@ -135,7 +139,7 @@ class MainWidget(HorizontalSplitter):
         elif marker_type == 'tag':
             ts_current = m.get_tags(i)
             m_current = m.get_marker(i)
-            t_request = self.__w_label.labels.index_to_tag(m_current, number)
+            t_request = self.__w_label_template.labels.get_tag_by_index(m_current, number)
             if t_request is not None:
                 if t_request in ts_current:
                     m.remove_tag(i, t_request)
@@ -176,6 +180,7 @@ class MainWidget(HorizontalSplitter):
         (Qt.NoModifier, Qt.Key_Right): FrameAction.NEXT_PAGE
     }
 
+    # noinspection PyArgumentList
     @pyqtSlot(QKeyEvent)
     def perform_key(self, e):
         key = e.key()
@@ -200,7 +205,7 @@ class MainWidget(HorizontalSplitter):
                 self.perform_frame_action(act)
                 return
 
-    # noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal,PyArgumentList
     @pyqtSlot(QImage, int, float)
     def __notice_cache(self, img, idx, ts):
         marker_cache = [
@@ -230,12 +235,19 @@ class MainWidget(HorizontalSplitter):
             v.release()
             v.deleteLater()
 
+    # noinspection PyArgumentList
     @pyqtSlot(str)
     def update_path(self, path):
         self.__remove_video_instance_if_exists()
+        # noinspection PyTypeChecker
         v = Video(self, path)
         self.__set_video_instance(v)
         v.seek(0)
+
+    # noinspection PyArgumentList
+    @pyqtSlot()
+    def update_label_templates(self):
+        self.__w_label_template.load_files()
 
 
 # noinspection PyPep8Naming
@@ -245,6 +257,7 @@ class MainStatusBarStubs:
 
 
 class MainStatusBar(MainStatusBarStubs, QStatusBar):
+    # noinspection PyArgumentList
     clicked = pyqtSignal(str)
 
     def __init__(self, parent: QWidget = None):
@@ -255,7 +268,7 @@ class MainStatusBar(MainStatusBarStubs, QStatusBar):
         font_weight = font_weight or 'normal'
 
         super().showMessage('')
-        self.setStyleSheet(f'background-color : {color}; font-weight: {font_weight};')
+        self.setStyleSheet(f'background-color: {color}; font-weight: {font_weight};')
         super().showMessage(message)
 
     def mousePressEvent(self, evt):
@@ -286,7 +299,9 @@ class MainWindowStubs:
 
 
 class MainWindow(QMainWindow, MainWindowStubs):
+    # noinspection PyArgumentList
     file_dropped = pyqtSignal(str)
+    # noinspection PyArgumentList
     key_entered = pyqtSignal(QKeyEvent)
 
     def __init__(self):
@@ -335,7 +350,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         if not zip_folder_path:
             return
 
-        result = labels.poring.export_all(zip_folder_path)
+        result = labels.porting.export_all(zip_folder_path)
         if not result:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Question)
@@ -348,7 +363,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
             if msg_result == QMessageBox.No:
                 return
 
-            result = labels.poring.export_all(zip_folder_path, exists_ok=True)
+            result = labels.porting.export_all(zip_folder_path, exists_ok=True)
             assert result, result
 
         print('Exported!')
@@ -373,7 +388,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
         if not check:
             return
 
-        canceled = labels.poring.import_all(zip_path)
+        canceled = labels.porting.import_all(zip_path)
         print('canceled =', canceled)
 
         if canceled is None:
@@ -509,6 +524,7 @@ class MainWindow(QMainWindow, MainWindowStubs):
                 return True
         return super().eventFilter(source, event)
 
+    # noinspection PyArgumentList
     @pyqtSlot(str)
     def __statusbar_clicked(self, msg):
         if msg.startswith('アップデートが利用可能です'):
@@ -516,16 +532,25 @@ class MainWindow(QMainWindow, MainWindowStubs):
 
     # noinspection PyPep8Naming
     def showEvent(self, _):
+        # noinspection PyUnresolvedReferences
+        self.centralWidget().update_label_templates()
+
         self.__load_mp4_for_debug()
 
         sb = self.statusBar()
         assert isinstance(sb, MainStatusBar), type(sb)
 
-        if version.update_available:
+        if version.update_available is None:
+            sb.showMessage(
+                f'アップデートを確認していません',
+                color='pink',
+                font_weight='bold'
+            )
+        elif version.update_available:
             sb.clicked.connect(self.__statusbar_clicked)
             sb.showMessage(
-                f'アップデートが利用可能です（{version.app_version_str}->{version.latest_version}）'
-                f'ここをクリックするとGitHubが開くので　Code -> Download ZIP から最新版をダウンロードしてmarkdataを移行してください。',
-                color='pink',
+                f'アップデートが利用可能です（ver {version.app_version_str}->ver {version.latest_version}）'
+                f'ここをクリックするとGitHubが開くので　Code -> Download ZIP から最新版をダウンロードしてmarkdataを移行してください',
+                color='cyan',
                 font_weight='bold'
             )

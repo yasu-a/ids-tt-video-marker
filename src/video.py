@@ -7,21 +7,10 @@ from PyQt5.QtGui import *
 from cache import lru_cache
 
 
-class VideoWorker(QObject):
-    def __init__(self, parent: QObject):
-        super().__init__(parent)
-
-    @pyqtSlot(int)
-    def cache(self):
-        pass
-
-    @pyqtSlot(int)
-    def seek(self):
-        pass
-
-
 class Video(QObject):
+    # noinspection PyArgumentList
     seek_requested = pyqtSignal(int, int)  # i_current, i_next
+    # noinspection PyArgumentList
     seek_finished = pyqtSignal(QImage, int, float)  # img, idx, ts
 
     def __init__(self, parent: QObject, path):
@@ -43,9 +32,6 @@ class Video(QObject):
         self.__frame_count = int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__last_frame_index = None
         self.__last_frame_timestamp = None
-
-        # self.__worker = VideoWorker(self)
-        # self.__thread = QThread()
 
     def __grab(self):
         self.__cap.grab()

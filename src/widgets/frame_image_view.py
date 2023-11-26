@@ -9,6 +9,7 @@ from res import resolve, Domain
 
 
 class FrameViewWidget(QWidget):
+    # noinspection PyArgumentList
     control_clicked = pyqtSignal(FrameAction)
 
     def __init__(self, parent: QWidget = None):
@@ -96,15 +97,17 @@ class FrameViewWidget(QWidget):
 
         layout_control.addStretch(1)
 
+    # noinspection PyArgumentList
     @pyqtSlot()
     def show_busy(self):
         self.setEnabled(False)
 
+    # noinspection PyArgumentList
     @pyqtSlot()
     def show_active(self):
         self.setEnabled(True)
 
-    # noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal,PyArgumentList
     @pyqtSlot(str, float, int)
     def setup_meta(self, path, fps, n_fr):
         self.__fps = fps
@@ -117,6 +120,7 @@ class FrameViewWidget(QWidget):
             f'({idx:7d}/{n_fr:7d}) {fps=:.2f}'
         )
 
+    # noinspection PyArgumentList
     @pyqtSlot(QImage, int, float)
     def setup_frame(self, img, idx, ts):
         self.__idx = idx
