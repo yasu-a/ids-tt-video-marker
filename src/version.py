@@ -18,7 +18,7 @@ _GITHUB_BRANCH_URL_FORMAT = 'https://github.com/yasu-a/ids-tt-video-marker/tree/
 with open(_APP_INFO_JSON_PATH, 'r') as f:
     app_info = json.load(f)
 
-_RETRIEVE_TIME_SPAN = datetime.timedelta(hours=2)
+_RETRIEVE_TIME_SPAN = datetime.timedelta(hours=1)
 
 
 def retrieve_branches_json():
