@@ -1,4 +1,4 @@
-# iDS TT Video Marker ver 2.2
+# iDS TT Video Marker ver 2.3-NIGHTLY
 
 ## 主な変更点
 
