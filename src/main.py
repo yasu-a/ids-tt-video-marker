@@ -1,3 +1,4 @@
+import os.path
 import webbrowser
 from typing import Optional, Literal
 
@@ -300,7 +301,7 @@ class MainWindowStubs:
 
 class MainWindow(QMainWindow, MainWindowStubs):
     # noinspection PyArgumentList
-    file_dropped = pyqtSignal(str)
+    file_dropped = pyqtSignal(str)  # video_path: str
     # noinspection PyArgumentList
     key_entered = pyqtSignal(QKeyEvent)
 
@@ -503,7 +504,16 @@ class MainWindow(QMainWindow, MainWindowStubs):
     # noinspection PyPep8Naming
     def __load_mp4_for_debug(self):
         if DEBUG:
-            self.file_dropped.emit(r'H:\idsttvideos\singles\20230219_03_Narumoto_Ito.mp4')
+            sample_vide_paths = [
+                r'H:\idsttvideos\singles\20230219_03_Narumoto_Ito.mp4',
+                r'D:\idsttvideos\singles\20230219_03_Narumoto_Ito.mp4'
+            ]
+            for sample_video_path in sample_vide_paths:
+                if not os.path.exists(sample_video_path):
+                    continue
+                self.file_dropped.emit(sample_video_path)
+                return
+            raise ValueError('debug video path not found in candidate list', sample_vide_paths)
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.KeyPress:
