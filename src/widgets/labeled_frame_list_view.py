@@ -59,9 +59,10 @@ class LabeledFrameListWidget(QWidget):
             data = self.__prev_label_data
         self.__prev_label_data = data
 
-        assert data is not None
-
         self.__lw.clear()
+
+        if data is None:  # skip update if label data has not been given yet
+            return
 
         with data as accessor:
             labeled_frame_index_iter = accessor.list_labeled_frame_indexes()
